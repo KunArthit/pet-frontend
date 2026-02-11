@@ -29,8 +29,8 @@ jobs:
           export $(cat .env | xargs)
 
           # ✅ build & up เฉพาะ frontend เท่านั้น
-          docker-compose build petterrain_frontend
-          docker-compose up -d petterrain_frontend
+          docker-compose build frontend
+          docker-compose up -d frontend
 
           # 🧹 ล้าง image เก่าที่ไม่ได้ใช้
           docker image prune -f

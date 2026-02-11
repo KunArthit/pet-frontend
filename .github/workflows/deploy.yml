@@ -25,12 +25,13 @@ jobs:
           # echo "🌐 Building container..."
           # cd /home/ubuntu
 
-          export $(cat .env | xargs)
+          export $(grep -v '^#' .env | xargs)
 
           docker-compose down
           docker-compose build
           docker-compose up -d
 
+          # 🧹 ล้าง image เก่าที่ไม่ได้ใช้
           docker image prune -f
 
           echo "✅ Deployment completed successfully!"

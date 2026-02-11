@@ -30,9 +30,7 @@ jobs:
           docker-compose down
           docker-compose build
           docker-compose up -d
-          docker image prune -f
 
-          # 🧹 ล้าง image เก่าที่ไม่ได้ใช้
           docker image prune -f
 
           echo "✅ Deployment completed successfully!"

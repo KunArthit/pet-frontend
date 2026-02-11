@@ -1,4 +1,4 @@
-name: Deploy Frontend to EC2
+name: Deploy Full Stack to EC2
 
 on:
   push:
@@ -13,26 +13,27 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Deploy Frontend via Docker Compose
+      - name: Deploy via Docker Compose
         run: |
           set -e
 
-          echo "🔄 Pulling latest Frontend code..."
-          cd /home/ubuntu/pet-frontend
+          echo "🔄 Pulling latest code..."
+          # cd /home/ubuntu/pet-frontend
           git fetch --all
           git reset --hard origin/main
 
-          echo "🌐 Building Frontend container..."
-          cd /home/ubuntu
+          # echo "🌐 Building container..."
+          # cd /home/ubuntu
 
           # ✅ โหลดค่าจาก .env เพื่อใช้กับ docker-compose
           export $(cat .env | xargs)
 
-          # ✅ build & up เฉพาะ frontend เท่านั้น
-          docker-compose build frontend
-          docker-compose up -d frontend
+          docker-compose down
+          docker-compose build
+          docker-compose up -d
+          docker image prune -f
 
           # 🧹 ล้าง image เก่าที่ไม่ได้ใช้
           docker image prune -f
 
-          echo "✅ Frontend Deployment completed successfully!"
+          echo "✅ Deployment completed successfully!"

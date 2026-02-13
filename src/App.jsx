@@ -35,6 +35,9 @@ import QuotationCreate from "./app/page/admin/quotations/QuotationCreate";
 import PaymentManagement from "./app/page/admin/payments/PaymentManagement";
 import PaymentDetail from "./app/page/admin/payments/PaymentDetail";
 import Setting from "./app/page/admin/Setting";
+import CartPage from "./app/page/shop/CartPage";
+import WishlistPage from "./app/page/shop/WishlistPage";
+import ProductDetailPage from "./app/page/shop/ProductDetailPage";
 
 
 // ฟังก์ชันเช็ค Token
@@ -120,8 +123,11 @@ const routers = createBrowserRouter([
       { index: true, element: <DashBoard /> },
       { path: "shop", element: <ShopPage /> },
       { path: "about", element: <AboutPage /> },
-      { path: "categories", element: <CategoryPage /> },      
+      { path: "categories", element: <CategoryPage /> },
+      { path: "product/:id", element: <ProductDetailPage /> },
       // 🔒 กลุ่ม My Account (ต้อง Login เท่านั้น)
+      { path: "cart", element: <ProtectedRoute><CartPage /></ProtectedRoute> },
+      { path: "wishlist", element: <ProtectedRoute><WishlistPage /></ProtectedRoute> },
       { 
         path: "my-account", 
         element: <ProtectedRoute><MyAccountPage /></ProtectedRoute> 

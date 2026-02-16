@@ -38,6 +38,7 @@ import Setting from "./app/page/admin/Setting";
 import CartPage from "./app/page/shop/CartPage";
 import WishlistPage from "./app/page/shop/WishlistPage";
 import ProductDetailPage from "./app/page/shop/ProductDetailPage";
+import EditProduct from "./app/page/admin/products/EditProduct";
 
 
 // ฟังก์ชันเช็ค Token
@@ -96,6 +97,7 @@ const routers = createBrowserRouter([
       { index: true, element: <AdminDashboard /> },
       { path: "dashboard", element: <AdminDashboard /> },
       { path: "products", element: <ProductManagement /> },
+      { path: "products/edit/:id", element: <EditProduct /> },
       { path: "products/add", element: <AddProduct /> },
       { path: "orders", element: <OrderManagement /> },
       { path: "orders/:id", element: <OrderDetailAdmin /> },

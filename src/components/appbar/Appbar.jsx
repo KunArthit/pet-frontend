@@ -23,6 +23,7 @@ export default function Appbar({
   const [userOpen, setUserOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { pathname } = useLocation();
+  const [role, setRole] = useState(null);
 
   const userRef = useRef(null);
   const navigate = useNavigate();
@@ -48,6 +49,7 @@ export default function Appbar({
       try {
         const parsedUser = JSON.parse(storedUser);
         setDisplayName(parsedUser.username || parsedUser.email || guestName);
+        setRole(parsedUser.role || null);
       } catch (e) {
         console.error("Error parsing user data", e);
       }
@@ -91,15 +93,21 @@ export default function Appbar({
     }
   };
 
-  const pages = useMemo(
-    () => [
+  const pages = useMemo(() => {
+    const basePages = [
       { key: "home", label: "หน้าแรก", path: "/" },
       { key: "shop", label: "สินค้า", path: "/shop" },
       { key: "categories", label: "หมวดหมู่", path: "/categories" },
       { key: "about", label: "เกี่ยวกับเรา", path: "/about" },
-    ],
-    [],
-  );
+    ];
+
+    // ✅ แอดเมนูเฉพาะคนที่เป็น admin หรือ super_admin
+    if (role === "admin" || role === "super_admin") {
+      basePages.push({ key: "admin", label: "แอดมิน", path: "/admin" });
+    }
+
+    return basePages;
+  }, [role]);
 
   const go = (pageKey) => {
     const page = pages.find((p) => p.key === pageKey);
@@ -183,12 +191,12 @@ export default function Appbar({
                     </button>
                     
                     {/* ✅ คืนชีพเมนูจัดการที่อยู่ */}
-                    <button onClick={() => { navigate("/my-account/address"); setUserOpen(false); }} className="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors">
+                    <button onClick={() => { navigate("/my-account/address-edit"); setUserOpen(false); }} className="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors">
                       <MapPin className="w-4 h-4" /> จัดการที่อยู่
                     </button>
                     
                     {/* ✅ คืนชีพเมนูตั้งค่าบัญชี */}
-                    <button onClick={() => { navigate("/my-account/settings"); setUserOpen(false); }} className="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors">
+                    <button onClick={() => { navigate("/my-account/edit"); setUserOpen(false); }} className="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors">
                       <Settings className="w-4 h-4" /> ตั้งค่าบัญชี
                     </button>
 
@@ -251,12 +259,12 @@ export default function Appbar({
                   </button>
 
                   {/* ✅ คืนชีพเมนูจัดการที่อยู่ (Mobile) */}
-                  <button onClick={() => { navigate("/my-account/address"); setMobileOpen(false); }} className="w-full text-left px-4 py-3.5 rounded-2xl font-semibold text-gray-600 hover:bg-gray-50 flex items-center gap-3 mb-2">
+                  <button onClick={() => { navigate("/my-account/address-edit"); setMobileOpen(false); }} className="w-full text-left px-4 py-3.5 rounded-2xl font-semibold text-gray-600 hover:bg-gray-50 flex items-center gap-3 mb-2">
                     <MapPin className="w-5 h-5" /> จัดการที่อยู่
                   </button>
 
                   {/* ✅ คืนชีพเมนูตั้งค่าบัญชี (Mobile) */}
-                  <button onClick={() => { navigate("/my-account/settings"); setMobileOpen(false); }} className="w-full text-left px-4 py-3.5 rounded-2xl font-semibold text-gray-600 hover:bg-gray-50 flex items-center gap-3 mb-2">
+                  <button onClick={() => { navigate("/my-account/edit"); setMobileOpen(false); }} className="w-full text-left px-4 py-3.5 rounded-2xl font-semibold text-gray-600 hover:bg-gray-50 flex items-center gap-3 mb-2">
                     <Settings className="w-5 h-5" /> ตั้งค่าบัญชี
                   </button>
 

@@ -47,6 +47,33 @@ const isAuthenticated = () => {
   return token !== null && token !== "" && token !== "undefined";
 };
 
+// ✅ สำหรับตรวจสิทธิ์เฉพาะ admin และ super_admin
+const AdminRoute = ({ children }) => {
+  const token = localStorage.getItem("accessToken");
+  const storedUser = localStorage.getItem("user");
+
+  if (!token || !storedUser) {
+    // ❌ ยังไม่ล็อกอิน → เด้งไปหน้า login
+    return <Navigate to="/login" replace />;
+  }
+
+  try {
+    const parsedUser = JSON.parse(storedUser);
+    const role = parsedUser.role;
+
+    if (role === "admin" || role === "super_admin") {
+      // ✅ ผ่าน
+      return children;
+    } else {
+      // ❌ ไม่มีสิทธิ์ → กลับหน้าหลัก
+      return <Navigate to="/" replace />;
+    }
+  } catch (err) {
+    console.error("Error parsing user:", err);
+    return <Navigate to="/login" replace />;
+  }
+};
+
 // ✅ สร้าง Component สำหรับป้องกันหน้า (Protected Route)
 const ProtectedRoute = ({ children }) => {
   if (!isAuthenticated()) {
@@ -89,9 +116,9 @@ const routers = createBrowserRouter([
   {
     path: "/admin",
     element: (
-      <ProtectedRoute>
+      <AdminRoute>
         <AdminLayout />
-      </ProtectedRoute>
+      </AdminRoute>
     ),
     children: [
       { index: true, element: <AdminDashboard /> },

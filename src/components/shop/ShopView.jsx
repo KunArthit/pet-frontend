@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom"; // ✅ 1. เพิ่ม import นี้
+import { useSearchParams } from "react-router-dom";
 import ProductCard from "@/components/products/ProductCard";
 import Detail from "./Detail.jsx";
 import ShopSidebar from "./ShopSidebar.jsx";
@@ -9,23 +9,16 @@ export default function ShopView({
   subtitle = "เลือกสิ่งที่ดีที่สุดเพื่อเจ้าตัวเล็กของคุณ",
   onAddToCart,
 }) {
-  // --- State ---
   const [products, setProducts] = useState([]);
   const [dbCategories, setDbCategories] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selected, setSelected] = useState(null);
-
-  // ✅ 2. Hook สำหรับอ่าน URL Query String (?category=...)
   const [searchParams] = useSearchParams();
 
-  // --- Filters ---
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState("popular");
-  
-  // ✅ 3. เริ่มต้น category เป็น "ทั้งหมด" ไปก่อน เดี๋ยว useEffect จะมาแก้ให้
   const [category, setCategory] = useState("ทั้งหมด");
-  
   const [maxPrice, setMaxPrice] = useState(5000);
 
   const apiBaseUrl = import.meta.env.VITE_API_ENDPOINT || "http://localhost:8080/api";
@@ -39,7 +32,6 @@ export default function ShopView({
         setIsLoading(true);
         setError(null);
 
-        // ดึง Products และ Categories พร้อมกัน
         const [prodRes, catRes] = await Promise.all([
           fetch(`${apiBaseUrl}/products?limit=1000`),
           fetch(`${apiBaseUrl}/categories`)
@@ -48,9 +40,8 @@ export default function ShopView({
         const prodResult = await prodRes.json();
         const catResult = await catRes.json();
 
-        // --- จัดการ Categories ---
-        let categoryLookup = {}; // Map ID -> Name
-        let availableCategories = []; // List เอาไว้ใช้หา Slug
+        let categoryLookup = {};
+        let availableCategories = [];
 
         if (catResult.success) {
           setDbCategories(catResult.data);
@@ -61,19 +52,22 @@ export default function ShopView({
           });
         }
 
-        // --- จัดการ Products ---
         if (prodResult.success) {
-          const mappedProducts = prodResult.data.map((p) => ({
+          // ✅ เพิ่ม filter เอาเฉพาะสินค้าที่ is_active !== 0
+          const activeProducts = prodResult.data.filter(p => p.is_active !== 0);
+
+          const mappedProducts = activeProducts.map((p) => ({
             id: p.id,
             name: p.name,
             description: p.description,
             price: Number(p.price),
             image: p.image_url || "https://placehold.co/300x300?text=No+Image",
-            category: categoryLookup[p.category_id] || "ทั่วไป", // Map ID เป็นชื่อ
+            category: categoryLookup[p.category_id] || "ทั่วไป",
             categoryId: p.category_id,
             rating: 4.5,
             stock: p.stock_quantity,
             createdAt: p.created_at,
+            is_active: p.is_active, // เก็บไว้ด้วยเผื่อใช้
           }));
 
           setProducts(mappedProducts);
@@ -81,14 +75,11 @@ export default function ShopView({
           throw new Error("ไม่สามารถโหลดข้อมูลสินค้าได้");
         }
 
-        // ✅ 4. Logic สำคัญ: อ่าน URL แล้ว Auto Select Category
-        const paramSlug = searchParams.get("category"); // อ่านค่า ?category=...
-        
+        // ✅ อ่าน URL Param เพื่อ set category อัตโนมัติ
+        const paramSlug = searchParams.get("category");
         if (paramSlug) {
-          // หาหมวดหมู่ที่ slug ตรงกับใน URL
           const matchedCat = availableCategories.find(c => c.slug === paramSlug);
           if (matchedCat) {
-            // ถ้าเจอ ให้ตั้งค่า filter เป็นชื่อหมวดหมู่ (เช่น "สุนัข")
             setCategory(matchedCat.name);
           }
         }
@@ -102,12 +93,11 @@ export default function ShopView({
     };
 
     initData();
-  }, [apiBaseUrl, searchParams]); // ✅ ใส่ searchParams ใน dependency
+  }, [apiBaseUrl, searchParams]);
 
   // --------------------------------------------------------------------------
   // 🔍 Client-side Filtering Logic
   // --------------------------------------------------------------------------
-  
   const categoryOptions = useMemo(() => {
     const names = dbCategories.map(c => c.name);
     return ["ทั้งหมด", ...names];
@@ -115,6 +105,9 @@ export default function ShopView({
 
   const filtered = useMemo(() => {
     let list = [...products];
+
+    // ✅ ป้องกันซ้ำ (เผื่อข้อมูลใน state มีสินค้าที่ inactive ติดมาภายหลัง)
+    list = list.filter(p => p.is_active !== 0);
 
     // Search
     if (query.trim()) {
@@ -161,6 +154,7 @@ export default function ShopView({
     <section className="pt-28 pb-16 min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
+        {/* Header */}
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-8">
           <div>
             <h1 className="text-3xl font-extrabold text-gray-900">{title}</h1>
@@ -169,6 +163,7 @@ export default function ShopView({
             </p>
           </div>
 
+          {/* Search + Sort */}
           <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
             <div className="relative">
               <input
@@ -201,10 +196,10 @@ export default function ShopView({
           </div>
         </div>
 
+        {/* Sidebar + Product List */}
         <div className="flex flex-col lg:flex-row gap-8">
-          
           <ShopSidebar
-            categories={categoryOptions} 
+            categories={categoryOptions}
             category={category}
             onCategoryChange={setCategory}
             maxPrice={maxPrice}
@@ -242,13 +237,11 @@ export default function ShopView({
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {filtered.map((p) => (
-                    <div key={p.id}>
-                      <ProductCard
-                        product={p}
-                        onProductClick={() => setSelected(p)}
-                        onClick={() => setSelected(p)}
-                      />
-                    </div>
+                    <ProductCard
+                      key={p.id}
+                      product={p}
+                      onClick={() => setSelected(p)}
+                    />
                   ))}
                 </div>
 
@@ -262,7 +255,6 @@ export default function ShopView({
                         setQuery("");
                         setCategory("ทั้งหมด");
                         setMaxPrice(5000);
-                        // ลบ query param ออกจาก URL ด้วยเพื่อให้ URL สะอาด (Optional)
                         window.history.pushState({}, '', '/shop');
                       }}
                       className="mt-6 text-emerald-600 font-semibold hover:underline"
@@ -277,6 +269,7 @@ export default function ShopView({
         </div>
       </div>
 
+      {/* ✅ Modal แสดงรายละเอียดสินค้า */}
       {selected && (
         <Detail
           product={selected}

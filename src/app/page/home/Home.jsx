@@ -1,13 +1,16 @@
 import { Outlet } from "react-router-dom";
 import Appbar from "@/components/appbar/Appbar";
 import Footer from "@/components/footer/Footer";
+import { ShopProvider } from "../../../context/ShopContext";
 
 function Home() {
   return (
     <>
-      <Appbar />
-      <Outlet />
-      <Footer />
+      <ShopProvider>
+        <Appbar />
+        <Outlet />
+        <Footer />
+      </ShopProvider>
     </>
   );
 }

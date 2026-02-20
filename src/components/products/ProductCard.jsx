@@ -1,12 +1,16 @@
 import React from "react";
 import { Star, Search } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 /**
  * ProductCard
  * - TailwindCSS styles (same as your inline version)
- * - Clickable card: pass onClick(product)
+ * - Card Click -> Go to detail page
+ * - Search Icon Click -> Open Quick View modal
  */
 export default function ProductCard({ product, onClick }) {
+  const navigate = useNavigate();
+
   if (!product) return null;
 
   const price = typeof product.price === "number" ? product.price : Number(product.price || 0);
@@ -20,18 +24,25 @@ export default function ProductCard({ product, onClick }) {
   const formatTHB = (n) =>
     new Intl.NumberFormat("th-TH", { maximumFractionDigits: 0 }).format(n);
 
-  const handleClick = () => {
+  // 1. กดที่ตัวการ์ด ให้พุ่งไปหน้า Detail
+  const handleCardClick = () => {
+    navigate(`/product/${product.id}`);
+  };
+
+  // 2. กดที่แว่นขยาย ให้เปิด Modal (ผ่าน props onClick จาก ShopView)
+  const handleSearchClick = (e) => {
+    e.stopPropagation(); // ป้องกันไม่ให้การกดแว่นขยาย ทะลุไปโดน handleCardClick
     if (typeof onClick === "function") onClick(product);
   };
 
   return (
     <div
       className="bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden group border border-gray-100 cursor-pointer"
-      onClick={handleClick}
+      onClick={handleCardClick}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") handleClick();
+        if (e.key === "Enter" || e.key === " ") handleCardClick();
       }}
     >
       <div className="relative h-64 overflow-hidden bg-gray-100">
@@ -54,14 +65,11 @@ export default function ProductCard({ product, onClick }) {
 
         <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
 
+        {/* ปุ่มแว่นขยาย */}
         <button
           type="button"
           className="absolute bottom-3 right-3 bg-white hover:bg-[#79A68F] text-gray-800 hover:text-white p-2 rounded-full shadow-md transition-colors transform translate-y-12 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 duration-300"
-          onClick={(e) => {
-            // prevent double-calling when clicking the button itself
-            e.stopPropagation();
-            handleClick();
-          }}
+          onClick={handleSearchClick}
           aria-label="Quick view"
         >
           <Search className="w-5 h-5" />
@@ -85,6 +93,7 @@ export default function ProductCard({ product, onClick }) {
             ) : null}
           </div>
 
+          {/* ถ้าอยากเปิดดาวให้เอาคอมเมนต์ออกได้เลยครับ โครงสร้างอยู่เหมือนเดิมเป๊ะ */}
           {/* <div className="flex text-yellow-400 text-xs" aria-label={`Rating ${product.rating || 0}`}>
             {[...Array(5)].map((_, i) => {
               const filled = i < Math.round(Number(product.rating || 0));
@@ -101,4 +110,3 @@ export default function ProductCard({ product, onClick }) {
     </div>
   );
 }
-

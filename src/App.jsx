@@ -35,12 +35,43 @@ import QuotationCreate from "./app/page/admin/quotations/QuotationCreate";
 import PaymentManagement from "./app/page/admin/payments/PaymentManagement";
 import PaymentDetail from "./app/page/admin/payments/PaymentDetail";
 import Setting from "./app/page/admin/Setting";
+import CartPage from "./app/page/shop/CartPage";
+import WishlistPage from "./app/page/shop/WishlistPage";
+import ProductDetailPage from "./app/page/shop/ProductDetailPage";
+import EditProduct from "./app/page/admin/products/EditProduct";
 
 
 // ฟังก์ชันเช็ค Token
 const isAuthenticated = () => {
   const token = localStorage.getItem("accessToken");
   return token !== null && token !== "" && token !== "undefined";
+};
+
+// ✅ สำหรับตรวจสิทธิ์เฉพาะ admin และ super_admin
+const AdminRoute = ({ children }) => {
+  const token = localStorage.getItem("accessToken");
+  const storedUser = localStorage.getItem("user");
+
+  if (!token || !storedUser) {
+    // ❌ ยังไม่ล็อกอิน → เด้งไปหน้า login
+    return <Navigate to="/login" replace />;
+  }
+
+  try {
+    const parsedUser = JSON.parse(storedUser);
+    const role = parsedUser.role;
+
+    if (role === "admin" || role === "super_admin") {
+      // ✅ ผ่าน
+      return children;
+    } else {
+      // ❌ ไม่มีสิทธิ์ → กลับหน้าหลัก
+      return <Navigate to="/" replace />;
+    }
+  } catch (err) {
+    console.error("Error parsing user:", err);
+    return <Navigate to="/login" replace />;
+  }
 };
 
 // ✅ สร้าง Component สำหรับป้องกันหน้า (Protected Route)
@@ -85,14 +116,15 @@ const routers = createBrowserRouter([
   {
     path: "/admin",
     element: (
-      <ProtectedRoute>
+      <AdminRoute>
         <AdminLayout />
-      </ProtectedRoute>
+      </AdminRoute>
     ),
     children: [
       { index: true, element: <AdminDashboard /> },
       { path: "dashboard", element: <AdminDashboard /> },
       { path: "products", element: <ProductManagement /> },
+      { path: "products/edit/:id", element: <EditProduct /> },
       { path: "products/add", element: <AddProduct /> },
       { path: "orders", element: <OrderManagement /> },
       { path: "orders/:id", element: <OrderDetailAdmin /> },
@@ -120,8 +152,11 @@ const routers = createBrowserRouter([
       { index: true, element: <DashBoard /> },
       { path: "shop", element: <ShopPage /> },
       { path: "about", element: <AboutPage /> },
-      { path: "categories", element: <CategoryPage /> },      
+      { path: "categories", element: <CategoryPage /> },
+      { path: "product/:id", element: <ProductDetailPage /> },
       // 🔒 กลุ่ม My Account (ต้อง Login เท่านั้น)
+      { path: "cart", element: <ProtectedRoute><CartPage /></ProtectedRoute> },
+      { path: "wishlist", element: <ProtectedRoute><WishlistPage /></ProtectedRoute> },
       { 
         path: "my-account", 
         element: <ProtectedRoute><MyAccountPage /></ProtectedRoute> 

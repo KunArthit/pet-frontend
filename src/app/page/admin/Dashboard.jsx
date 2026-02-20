@@ -1,4 +1,4 @@
-// src/pages/admin/Dashboard.jsx
+// src/page/admin/Dashboard.jsx
 import React from "react";
 import { 
   TrendingUp, 

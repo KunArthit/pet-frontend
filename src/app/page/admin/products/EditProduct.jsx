@@ -55,10 +55,16 @@ export default function EditProduct() {
   // ✅ โหลดรูปภาพเพิ่มเติมของสินค้า
   const fetchProductImages = async () => {
     try {
-      const res = await fetch(`${apiEndpoint}/products/${id}/images`);
+      const res = await fetch(`${apiEndpoint}/products/${id}`);
       const data = await res.json();
-      if (data.success && Array.isArray(data.data)) {
-        setProductImages(data.data);
+      if (data.success && data.data?.gallery) {
+        const fullUrls = data.data.gallery.map((img) => ({
+          ...img,
+          image_url: img.image_url.startsWith("http")
+            ? img.image_url
+            : `${apiEndpoint.replace("/api", "")}${img.image_url}`,
+        }));
+        setProductImages(fullUrls);
       }
     } catch (err) {
       console.error("โหลดรูปภาพไม่สำเร็จ:", err);
@@ -73,23 +79,73 @@ export default function EditProduct() {
   const handleUploadImage = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("image", file);
+      // STEP 1: อัปโหลดไปที่ /upload
+      const form = new FormData();
+      form.append("file", file);
+      const uploadRes = await fetch(`${apiEndpoint}/upload`, {
+        method: "POST",
+        body: form,
+      });
+      const uploadData = await uploadRes.json();
+      if (!uploadData.success) throw new Error("อัปโหลดภาพไม่สำเร็จ");
 
+      // STEP 2: เพิ่มลง gallery
       const res = await fetch(`${apiEndpoint}/products/${id}/images`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          image_url: uploadData.url,
+          sort_order: productImages.length,
+        }),
+      });
+      if (!res.ok) throw new Error("เพิ่มรูปภาพไม่สำเร็จ");
+
+      showToast("✅ เพิ่มรูปสำเร็จ", "success");
+      fetchProductImages();
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // ✅ อัปโหลดรูปปกสินค้า (แทนที่ image_url เดิม)
+  const handleUploadMainImage = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      // STEP 1: upload ไป /upload
+      const form = new FormData();
+      form.append("file", file);
+      const uploadRes = await fetch(`${apiEndpoint}/upload`, {
+        method: "POST",
+        body: form,
+      });
+      const uploadData = await uploadRes.json();
+      if (!uploadData.success) throw new Error("อัปโหลดภาพไม่สำเร็จ");
+
+      // STEP 2: อัปเดต image_url ในสินค้า
+      const res = await fetch(`${apiEndpoint}/products/${id}`, {
+        method: "PUT",
         headers: {
+          "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
         },
-        body: formData,
+        body: JSON.stringify({ image_url: uploadData.url }),
       });
 
-      if (!res.ok) throw new Error("อัปโหลดรูปภาพไม่สำเร็จ");
-      showToast("✅ อัปโหลดรูปภาพสำเร็จ!", "success");
-      fetchProductImages();
+      if (!res.ok) throw new Error("อัปเดตรูปปกไม่สำเร็จ");
+
+      showToast("✅ อัปโหลดรูปปกสำเร็จ!", "success");
+
+      // STEP 3: อัปเดต state ให้โชว์ภาพใหม่
+      setProduct((prev) => ({
+        ...prev,
+        image_url: `${apiEndpoint.replace("/api", "")}${uploadData.url}`,
+      }));
     } catch (err) {
       showToast(err.message, "error");
     } finally {
@@ -100,19 +156,36 @@ export default function EditProduct() {
   // ✅ ลบรูปภาพ
   const handleDeleteImage = async (imageId) => {
     if (!confirm("คุณต้องการลบรูปนี้ใช่ไหม?")) return;
-
     try {
       const res = await fetch(`${apiEndpoint}/products/images/${imageId}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
-        },
       });
-
       if (!res.ok) throw new Error("ลบรูปภาพไม่สำเร็จ");
-
       showToast("🗑️ ลบรูปภาพเรียบร้อย!", "success");
       fetchProductImages();
+    } catch (err) {
+      showToast(err.message, "error");
+    }
+  };
+
+  // ✅ ลบรูปหลัก (image_url)
+  const handleDeleteMainImage = async () => {
+    if (!confirm("คุณต้องการลบภาพปกสินค้านี้ใช่ไหม?")) return;
+
+    try {
+      const res = await fetch(`${apiEndpoint}/products/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+        },
+        body: JSON.stringify({ image_url: "" }), // ✅ เคลียร์ค่า image_url
+      });
+
+      if (!res.ok) throw new Error("ลบภาพปกไม่สำเร็จ");
+
+      showToast("🗑️ ลบภาพปกเรียบร้อย!", "success");
+      setProduct((prev) => ({ ...prev, image_url: "" })); // ✅ อัปเดต state
     } catch (err) {
       showToast(err.message, "error");
     }
@@ -144,7 +217,11 @@ export default function EditProduct() {
           description: p.description ?? "",
           price: parseFloat(p.price ?? 0),
           stock_quantity: p.stock_quantity ?? 0,
-          image_url: p.image_url ?? "",
+          image_url: p.image_url
+            ? p.image_url.startsWith("http")
+              ? p.image_url
+              : `${apiEndpoint.replace("/api", "")}${p.image_url}`
+            : "",
           is_active: Number(p.is_active ?? 1),
         });
       } catch (err) {
@@ -307,11 +384,11 @@ export default function EditProduct() {
           {/* ✅ รูปภาพสินค้า */}
           <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
             <h3 className="font-bold text-slate-700 flex items-center gap-2">
-              <ImageIcon size={18} className="text-indigo-500" /> รูปภาพสินค้า
+              <ImageIcon size={18} className="text-indigo-500" /> รูปปกสินค้า
             </h3>
 
-            {/* รูปหลัก */}
-            {product.image_url && (
+            {/* ✅ รูปหลัก */}
+            {product.image_url ? (
               <div className="relative rounded-xl overflow-hidden border border-slate-100 aspect-video bg-slate-50">
                 <img
                   src={product.image_url}
@@ -320,20 +397,50 @@ export default function EditProduct() {
                 />
                 <button
                   type="button"
-                  onClick={() => handleDeleteImage(product.id)}
+                  onClick={handleDeleteMainImage}
                   className="absolute top-2 right-2 bg-rose-500 hover:bg-rose-600 text-white rounded-md p-2 shadow opacity-80 hover:opacity-100 transition"
                 >
                   ✕
                 </button>
               </div>
+            ) : (
+              // ✅ กรณีไม่มีรูปปก
+              <div className="aspect-video rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center bg-slate-50 text-slate-400">
+                <ImageIcon size={40} className="opacity-50 mb-2" />
+                <p className="text-sm font-medium">ยังไม่มีรูปปกสินค้า</p>
+
+                {/* ปุ่มอัปโหลดแสดงในกรอบนี้เลย */}
+                <label
+                  htmlFor="uploadMainImage"
+                  className={`mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold cursor-pointer transition-all shadow-sm
+        ${
+          uploading
+            ? "bg-slate-300 text-slate-600 cursor-not-allowed"
+            : "bg-emerald-600 hover:bg-emerald-700 text-white"
+        }`}
+                >
+                  <ImageIcon size={16} />
+                  {uploading ? "กำลังอัปโหลด..." : "อัปโหลดรูป"}
+                  <input
+                    id="uploadMainImage"
+                    type="file"
+                    accept="image/*"
+                    disabled={uploading}
+                    onChange={handleUploadMainImage}
+                    className="hidden"
+                  />
+                </label>
+              </div>
             )}
 
             {/* รูปเพิ่มเติม */}
-            {productImages.length > 0 && (
-              <div>
-                <label className="text-xs font-black uppercase text-slate-400 ml-1 block mb-2">
-                  รูปภาพเพิ่มเติม
-                </label>
+            {/* ✅ รูปภาพเพิ่มเติม */}
+            <div>
+              <label className="text-xs font-black uppercase text-slate-400 ml-1 block mb-2">
+                รูปภาพรายละเอียดสินค้า
+              </label>
+
+              {productImages.length > 0 ? (
                 <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
                   {productImages.map((img, idx) => (
                     <div key={idx} className="relative group">
@@ -355,71 +462,77 @@ export default function EditProduct() {
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+              ) : (
+                // ✅ กรณีไม่มีรูปเพิ่มเติม
+                <div className="rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center bg-slate-50 text-slate-400 py-8">
+                  <ImageIcon size={36} className="opacity-50 mb-2" />
+                  <p className="text-sm font-medium">ยังไม่มีรูปภาพเพิ่มเติม</p>
+                </div>
+              )}
+            </div>
 
             {/* อัปโหลดรูปภาพจากเครื่อง */}
             <div className="space-y-3">
-                <label className="text-xs font-black uppercase text-slate-400 ml-1">
-                    เพิ่มรูปภาพใหม่จากเครื่อง
-                </label>
+              <label className="text-xs font-black uppercase text-slate-400 ml-1">
+                เพิ่มรูปภาพใหม่จากเครื่อง
+              </label>
 
-                <div className="flex flex-col md:flex-row md:items-center gap-3">
-                    {/* ปุ่มเลือกไฟล์ */}
-                    <label
-                    htmlFor="uploadImage"
-                    className={`inline-flex items-center gap-2 px-5 py-3 rounded-xl font-semibold cursor-pointer transition-all shadow-sm
+              <div className="flex flex-col md:flex-row md:items-center gap-3">
+                {/* ปุ่มเลือกไฟล์ */}
+                <label
+                  htmlFor="uploadImage"
+                  className={`inline-flex items-center gap-2 px-5 py-3 rounded-xl font-semibold cursor-pointer transition-all shadow-sm
                         ${
-                        uploading
+                          uploading
                             ? "bg-slate-300 text-slate-600 cursor-not-allowed"
                             : "bg-indigo-600 hover:bg-indigo-700 text-white"
                         }`}
-                    >
-                    <ImageIcon size={18} />
-                    {uploading ? "กำลังอัปโหลด..." : "เลือกไฟล์"}
-                    <input
-                        id="uploadImage"
-                        type="file"
-                        accept="image/*"
-                        disabled={uploading}
-                        onChange={handleUploadImage}
-                        className="hidden"
-                    />
-                    </label>
+                >
+                  <ImageIcon size={18} />
+                  {uploading ? "กำลังอัปโหลด..." : "เลือกไฟล์"}
+                  <input
+                    id="uploadImage"
+                    type="file"
+                    accept="image/*"
+                    disabled={uploading}
+                    onChange={handleUploadImage}
+                    className="hidden"
+                  />
+                </label>
 
-                    {/* แสดงชื่อไฟล์ */}
-                    <div className="text-sm text-slate-500 truncate max-w-[200px]">
-                    {uploading ? (
-                        <span className="flex items-center gap-2">
-                        <svg
-                            className="animate-spin h-4 w-4 text-slate-400"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                        >
-                            <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                            />
-                            <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                            />
-                        </svg>
-                        กำลังอัปโหลด...
-                        </span>
-                    ) : (
-                        <span id="fileName" className="italic">
-                        ยังไม่ได้เลือกไฟล์
-                        </span>
-                    )}
-                    </div>
+                {/* แสดงชื่อไฟล์ */}
+                <div className="text-sm text-slate-500 truncate max-w-[200px]">
+                  {uploading ? (
+                    <span className="flex items-center gap-2">
+                      <svg
+                        className="animate-spin h-4 w-4 text-slate-400"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                        />
+                      </svg>
+                      กำลังอัปโหลด...
+                    </span>
+                  ) : (
+                    <span id="fileName" className="italic">
+                      {/* ยังไม่ได้เลือกไฟล์ */}
+                    </span>
+                  )}
                 </div>
+              </div>
             </div>
           </div>
         </div>

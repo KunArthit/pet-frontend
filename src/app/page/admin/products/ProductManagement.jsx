@@ -41,7 +41,11 @@ export default function ProductManagement() {
               price: parseFloat(p.price),
               stock: p.stock_quantity,
               status: p.is_active ? "พร้อมขาย" : "ไม่พร้อมขาย",
-              image: p.image_url,
+              image: p.image_url
+                ? p.image_url.startsWith("http")
+                  ? p.image_url
+                  : `${apiEndpoint.replace("/api", "")}${p.image_url}`
+                : null,
             };
           });
           setProducts(formatted);

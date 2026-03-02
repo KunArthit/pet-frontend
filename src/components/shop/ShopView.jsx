@@ -61,13 +61,17 @@ export default function ShopView({
             name: p.name,
             description: p.description,
             price: Number(p.price),
-            image: p.image_url || "https://placehold.co/300x300?text=No+Image",
+            image: p.image_url
+              ? p.image_url.startsWith("http")
+                ? p.image_url
+                : `${apiBaseUrl.replace("/api", "")}${p.image_url}`
+              : "https://placehold.co/300x300?text=No+Image",
             category: categoryLookup[p.category_id] || "ทั่วไป",
             categoryId: p.category_id,
             rating: 4.5,
             stock: p.stock_quantity,
             createdAt: p.created_at,
-            is_active: p.is_active, // เก็บไว้ด้วยเผื่อใช้
+            is_active: p.is_active,
           }));
 
           setProducts(mappedProducts);

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/error-boundaries */
 // src/App.jsx
 import "./App.css";
 import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";

@@ -7,7 +7,6 @@ import ShopSidebar from "./ShopSidebar.jsx";
 export default function ShopView({
   title = "สินค้าทั้งหมด",
   subtitle = "เลือกสิ่งที่ดีที่สุดเพื่อเจ้าตัวเล็กของคุณ",
-  onAddToCart,
 }) {
   const [products, setProducts] = useState([]);
   const [dbCategories, setDbCategories] = useState([]);
@@ -274,11 +273,17 @@ export default function ShopView({
       </div>
 
       {/* ✅ Modal แสดงรายละเอียดสินค้า */}
-      {selected && (
+      {/* {selected && (
         <Detail
           product={selected}
           onClose={() => setSelected(null)}
           onAddToCart={(qty) => onAddToCart?.(selected, qty)}
+        />
+      )} */}
+      {selected && (
+        <Detail
+          product={selected}
+          onClose={() => setSelected(null)}
         />
       )}
     </section>

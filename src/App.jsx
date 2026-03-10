@@ -40,6 +40,7 @@ import CartPage from "./app/page/shop/CartPage";
 import WishlistPage from "./app/page/shop/WishlistPage";
 import ProductDetailPage from "./app/page/shop/ProductDetailPage";
 import EditProduct from "./app/page/admin/products/EditProduct";
+import CheckoutPage from "./app/page/shop/CheckoutPage";
 
 
 // ฟังก์ชันเช็ค Token
@@ -158,6 +159,7 @@ const routers = createBrowserRouter([
       // 🔒 กลุ่ม My Account (ต้อง Login เท่านั้น)
       { path: "cart", element: <ProtectedRoute><CartPage /></ProtectedRoute> },
       { path: "wishlist", element: <ProtectedRoute><WishlistPage /></ProtectedRoute> },
+      { path: "checkout", element: <ProtectedRoute><CheckoutPage /></ProtectedRoute> },
       { 
         path: "my-account", 
         element: <ProtectedRoute><MyAccountPage /></ProtectedRoute> 

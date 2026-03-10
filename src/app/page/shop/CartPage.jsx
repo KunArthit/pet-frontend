@@ -90,7 +90,7 @@ export default function CartPage() {
                 <div className="flex justify-between"><span>ค่าจัดส่ง</span><span className="font-bold text-gray-900">{shippingFee === 0 ? <span className="text-[#79A68F]">ส่งฟรี</span> : `฿${shippingFee}`}</span></div>
               </div>
               <div className="flex justify-between items-end mb-8"><span className="text-base font-bold text-gray-900">ยอดสุทธิ</span><span className="text-3xl font-extrabold text-[#79A68F]">฿{total.toLocaleString()}</span></div>
-              <button onClick={() => alert("ระบบกำลังพาท่านไปหน้าชำระเงิน...")} className="w-full py-4 rounded-2xl bg-[#79A68F] text-white font-bold text-lg hover:bg-[#5E8570] transition shadow-lg shadow-[#79A68F]/30 flex items-center justify-center gap-2">ดำเนินการชำระเงิน <ArrowRight className="w-5 h-5" /></button>
+              <button onClick={() => navigate('/checkout')} className="w-full py-4 rounded-2xl bg-[#79A68F] text-white font-bold text-lg hover:bg-[#5E8570] transition shadow-lg shadow-[#79A68F]/30 flex items-center justify-center gap-2">ดำเนินการชำระเงิน <ArrowRight className="w-5 h-5" /></button>
             </div>
           </div>
         </div>

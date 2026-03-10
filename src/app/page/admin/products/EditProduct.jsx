@@ -71,8 +71,68 @@ export default function EditProduct() {
     }
   };
 
+  // useEffect(() => {
+  //   fetchProductImages();
+  // }, [id]);
+
   useEffect(() => {
-    fetchProductImages();
+    const fetchData = async () => {
+      try {
+        const [prodRes, catRes] = await Promise.all([
+          fetch(`${apiEndpoint}/products/${id}`),
+          fetch(`${apiEndpoint}/categories`)
+        ]);
+  
+        if (!prodRes.ok) throw new Error("ไม่สามารถโหลดข้อมูลสินค้าได้");
+  
+        const prodData = await prodRes.json();
+        const catData = await catRes.json();
+  
+        // categories
+        if (catData.success) {
+          setCategories(catData.data || []);
+        }
+  
+        const p = prodData.data.product || {};
+  
+        // product data
+        setProduct({
+          name: p.name ?? "",
+          slug: p.slug ?? "",
+          sku: p.sku ?? "",
+          category_id: p.category_id ?? "",
+          description: p.description ?? "",
+          price: parseFloat(p.price ?? 0),
+          stock_quantity: p.stock_quantity ?? 0,
+          image_url: p.image_url
+            ? p.image_url.startsWith("http")
+              ? p.image_url
+              : `${apiEndpoint.replace("/api", "")}${p.image_url}`
+            : "",
+          is_active: Number(p.is_active ?? 1),
+        });
+  
+        // gallery images
+        if (prodData.data?.gallery) {
+          const fullUrls = prodData.data.gallery.map((img) => ({
+            ...img,
+            image_url: img.image_url.startsWith("http")
+              ? img.image_url
+              : `${apiEndpoint.replace("/api", "")}${img.image_url}`,
+          }));
+  
+          setProductImages(fullUrls);
+        }
+  
+      } catch (err) {
+        console.error(err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+  
+    fetchData();
   }, [id]);
 
   // ✅ อัปโหลดรูปภาพจากเครื่อง (ส่งไฟล์จริง)
@@ -192,48 +252,48 @@ export default function EditProduct() {
   };
 
   // ✅ โหลดข้อมูลสินค้า + categories
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [prodRes, catRes] = await Promise.all([
-          fetch(`${apiEndpoint}/products/${id}`),
-          fetch(`${apiEndpoint}/categories`),
-        ]);
+  // useEffect(() => {
+  //   const fetchData = async () => {
+  //     try {
+  //       const [prodRes, catRes] = await Promise.all([
+  //         fetch(`${apiEndpoint}/products/${id}`),
+  //         fetch(`${apiEndpoint}/categories`),
+  //       ]);
 
-        if (!prodRes.ok) throw new Error("ไม่สามารถโหลดข้อมูลสินค้าได้");
+  //       if (!prodRes.ok) throw new Error("ไม่สามารถโหลดข้อมูลสินค้าได้");
 
-        const prodData = await prodRes.json();
-        const catData = await catRes.json();
+  //       const prodData = await prodRes.json();
+  //       const catData = await catRes.json();
 
-        if (catData.success) setCategories(catData.data || []);
+  //       if (catData.success) setCategories(catData.data || []);
 
-        const p = prodData.data.product || {};
+  //       const p = prodData.data.product || {};
 
-        setProduct({
-          name: p.name ?? "",
-          slug: p.slug ?? "",
-          sku: p.sku ?? "",
-          category_id: p.category_id ?? "",
-          description: p.description ?? "",
-          price: parseFloat(p.price ?? 0),
-          stock_quantity: p.stock_quantity ?? 0,
-          image_url: p.image_url
-            ? p.image_url.startsWith("http")
-              ? p.image_url
-              : `${apiEndpoint.replace("/api", "")}${p.image_url}`
-            : "",
-          is_active: Number(p.is_active ?? 1),
-        });
-      } catch (err) {
-        console.error(err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
+  //       setProduct({
+  //         name: p.name ?? "",
+  //         slug: p.slug ?? "",
+  //         sku: p.sku ?? "",
+  //         category_id: p.category_id ?? "",
+  //         description: p.description ?? "",
+  //         price: parseFloat(p.price ?? 0),
+  //         stock_quantity: p.stock_quantity ?? 0,
+  //         image_url: p.image_url
+  //           ? p.image_url.startsWith("http")
+  //             ? p.image_url
+  //             : `${apiEndpoint.replace("/api", "")}${p.image_url}`
+  //           : "",
+  //         is_active: Number(p.is_active ?? 1),
+  //       });
+  //     } catch (err) {
+  //       console.error(err);
+  //       setError(err.message);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
 
-    fetchData();
-  }, [id]);
+  //   fetchData();
+  // }, [id]);
 
   const handleChange = (e) => {
     const { name, value, type } = e.target;
@@ -268,12 +328,16 @@ export default function EditProduct() {
     }
   };
 
-  if (loading)
+  if (loading) {
     return (
-      <div className="p-10 text-center text-slate-500">
-        กำลังโหลดข้อมูลสินค้า...
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-4 text-slate-500">
+          <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+          <p className="font-semibold text-sm">กำลังโหลดข้อมูลสินค้า...</p>
+        </div>
       </div>
     );
+  }
   if (error)
     return (
       <div className="p-10 text-center text-rose-500 font-bold">

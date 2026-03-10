@@ -14,6 +14,8 @@ import {
   Settings   // ✅ เอากลับมาแล้ว!
 } from "lucide-react";
 import { useShop } from "../../context/ShopContext"; // ดึงข้อมูลตะกร้า/รายการโปรด
+import { useTranslation } from "react-i18next";
+import i18n from "../../i18n";
 
 export default function Appbar({
   currentPage,
@@ -24,6 +26,11 @@ export default function Appbar({
   const [mobileOpen, setMobileOpen] = useState(false);
   const { pathname } = useLocation();
   const [role, setRole] = useState(null);
+  const { t, i18n } = useTranslation();
+  const changeLang = async (lang) => {
+    await i18n.changeLanguage(lang);
+    localStorage.setItem("lang", lang);
+  };
 
   const userRef = useRef(null);
   const navigate = useNavigate();
@@ -95,19 +102,19 @@ export default function Appbar({
 
   const pages = useMemo(() => {
     const basePages = [
-      { key: "home", label: "หน้าแรก", path: "/" },
-      { key: "shop", label: "สินค้า", path: "/shop" },
-      { key: "categories", label: "หมวดหมู่", path: "/categories" },
-      { key: "about", label: "เกี่ยวกับเรา", path: "/about" },
+      { key: "home", label: t("menu.home"), path: "/" },
+      { key: "shop", label: t("menu.product"), path: "/shop" },
+      { key: "categories", label: t("menu.category"), path: "/categories" },
+      { key: "about", label: t("menu.aboutus"), path: "/about" },
     ];
 
     // ✅ แอดเมนูเฉพาะคนที่เป็น admin หรือ super_admin
     if (role === "admin" || role === "super_admin") {
-      basePages.push({ key: "admin", label: "แอดมิน", path: "/admin" });
+      basePages.push({ key: "admin", label: t("menu.admin"), path: "/admin" });
     }
 
     return basePages;
-  }, [role]);
+  }, [role, i18n.language]);
 
   const go = (pageKey) => {
     const page = pages.find((p) => p.key === pageKey);
@@ -149,6 +156,15 @@ export default function Appbar({
           <div className="flex items-center gap-1">
             {isLoggedIn && (
               <>
+                {/* Language Switch */}
+                <button
+                  onClick={() => changeLang(i18n.language === "th" ? "en" : "th")}
+                  className="px-2 py-1 text-xs font-bold rounded-lg bg-emerald-600 text-white hover:bg-emerald-800 transition"
+                  title={i18n.language === "th" ? "Switch to English" : "เปลี่ยนเป็นภาษาไทย"}
+                >
+                  {i18n.language === "th" ? "TH" : "EN"}
+                </button>
+
                 <button type="button" onClick={() => navigate("/wishlist")} className={`relative p-2 rounded-xl transition ${isSolid ? "hover:bg-gray-100" : "hover:bg-white/10"}`} aria-label="Wishlist">
                   <Heart className="w-5 h-5" />
                   {wishlistCount > 0 && (
@@ -243,31 +259,6 @@ export default function Appbar({
               
               {isLoggedIn ? (
                 <>
-                  <button onClick={() => { navigate("/cart"); setMobileOpen(false); }} className="w-full text-left px-4 py-3.5 rounded-2xl font-semibold text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 flex items-center gap-3 mb-2">
-                    <ShoppingBag className="w-5 h-5" /> ตะกร้าสินค้า ({cartCount})
-                  </button>
-                  <button onClick={() => { navigate("/wishlist"); setMobileOpen(false); }} className="w-full text-left px-4 py-3.5 rounded-2xl font-semibold text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 flex items-center gap-3 mb-2">
-                    <Heart className="w-5 h-5" /> รายการที่บันทึก ({wishlistCount})
-                  </button>
-                  <div className="my-4 border-t border-gray-100" />
-                  
-                  <button onClick={() => { navigate("/my-account"); setMobileOpen(false); }} className="w-full text-left px-4 py-3.5 rounded-2xl font-semibold text-gray-600 hover:bg-gray-50 flex items-center gap-3 mb-2">
-                    <User className="w-5 h-5" /> โปรไฟล์
-                  </button>
-                  <button onClick={() => { navigate("/my-account/orders"); setMobileOpen(false); }} className="w-full text-left px-4 py-3.5 rounded-2xl font-semibold text-gray-600 hover:bg-gray-50 flex items-center gap-3 mb-2">
-                    <Package className="w-5 h-5" /> คำสั่งซื้อของฉัน
-                  </button>
-
-                  {/* ✅ คืนชีพเมนูจัดการที่อยู่ (Mobile) */}
-                  <button onClick={() => { navigate("/my-account/address-edit"); setMobileOpen(false); }} className="w-full text-left px-4 py-3.5 rounded-2xl font-semibold text-gray-600 hover:bg-gray-50 flex items-center gap-3 mb-2">
-                    <MapPin className="w-5 h-5" /> จัดการที่อยู่
-                  </button>
-
-                  {/* ✅ คืนชีพเมนูตั้งค่าบัญชี (Mobile) */}
-                  <button onClick={() => { navigate("/my-account/edit"); setMobileOpen(false); }} className="w-full text-left px-4 py-3.5 rounded-2xl font-semibold text-gray-600 hover:bg-gray-50 flex items-center gap-3 mb-2">
-                    <Settings className="w-5 h-5" /> ตั้งค่าบัญชี
-                  </button>
-
                   <button onClick={handleLogout} className="w-full text-left px-4 py-3.5 rounded-2xl font-semibold text-red-600 bg-red-50 hover:bg-red-100 flex items-center gap-3 mt-4">
                     <LogOut className="w-5 h-5" /> ออกจากระบบ
                   </button>

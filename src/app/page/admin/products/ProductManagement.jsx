@@ -29,7 +29,11 @@ export default function ProductManagement() {
         const prodData = await prodRes.json();
         const catData = await catRes.json();
 
-        if (catData.success) setCategories(catData.data);
+        // if (catData.success) setCategories(catData.data);
+
+        if (catData?.success && Array.isArray(catData.data)) {
+          setCategories(catData.data);
+        }
 
         if (prodData.success && Array.isArray(prodData.data)) {
           const formatted = prodData.data.map((p) => {
@@ -96,8 +100,9 @@ export default function ProductManagement() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64 text-slate-500">
-        กำลังโหลดข้อมูลสินค้า...
+      <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
+        <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+        <p className="text-slate-500 font-semibold">กำลังโหลดข้อมูลสินค้า...</p>
       </div>
     );
   }

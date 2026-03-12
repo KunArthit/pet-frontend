@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -70,9 +71,12 @@ export default function UserManagement() {
   const handleSaveEdit = async () => {
     if (!editingUser) return;
     const userId = editingUser.id;
+
+    console.log(userId);
+    
     
     try {
-      const res = await fetch(`${apiEndpoint}/users/${editingUser.user_id}`, {
+      const res = await fetch(`${apiEndpoint}/users/${userId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

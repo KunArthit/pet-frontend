@@ -198,7 +198,8 @@ import {
   MapPin, 
   Phone,
   Camera,
-  CheckCircle2
+  CheckCircle2,
+  Loader // ✅ เพิ่ม Loader
 } from "lucide-react";
 
 const apiBaseUrl = import.meta.env.VITE_API_ENDPOINT || "http://localhost:8080/api";
@@ -207,6 +208,10 @@ export default function Settings() {
 
   const [activeTab, setActiveTab] = useState("general");
   const [showToast, setShowToast] = useState(false);
+  
+  // ✅ เพิ่ม State สำหรับ Loading
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   const [settings, setSettings] = useState({
     store_name: "",
@@ -223,48 +228,91 @@ export default function Settings() {
     { id: "payments", label: "ช่องทางชำระเงิน", icon: CreditCard },
   ];
 
-  // โหลดข้อมูลจาก API
+  // ✅ 1. โหลดข้อมูลจาก API (GET) พร้อมแนบ Token
   useEffect(() => {
-    fetch(`${apiBaseUrl}/settings`)
-      .then(async (res) => {
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(text);
+    const fetchSettings = async () => {
+      setIsLoading(true);
+      try {
+        const token = localStorage.getItem("accessToken") || localStorage.getItem("token");
+        
+        const res = await fetch(`${apiBaseUrl}/settings`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}` // ✅ แนบ Token
+          }
+        });
+
+        if (!res.ok) throw new Error("Failed to fetch settings");
+        
+        const data = await res.json();
+        if (data.success) {
+          setSettings(data.data.settings || {});
+          setPayments(data.data.payments || []);
         }
-        return res.json();
-      })
-      .then((res) => {
-        if (res.success) {
-          setSettings(res.data.settings);
-          setPayments(res.data.payments);
-        }
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error("Settings API error:", err);
-      });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSettings();
   }, []);
 
-  // save settings
+  // ✅ 2. บันทึกข้อมูล (PUT) พร้อมแนบ Token
   const handleSave = async () => {
+    setIsSaving(true);
     try {
+      const token = localStorage.getItem("accessToken") || localStorage.getItem("token");
+
+      console.log("Before");
+      console.log(settings);
+
+      const bodySetting = {
+        store_name: settings.store_name,
+        email: settings.email,
+        phone: settings.phone,
+        address: settings.address,
+        // logo: settings.logo // ✅ ถ้ามีการอัปโหลดโลโก้ใหม่ ต้องจัดการไฟล์ด้วย FormData
+      };
+      
       const res = await fetch(`${apiBaseUrl}/settings`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}` // ✅ แนบ Token
         },
-        body: JSON.stringify(settings),
+        body: JSON.stringify(bodySetting),
       });
-
+      console.log("After");
+      console.log(res);
+      
       const data = await res.json();
 
       if (data.success) {
         setShowToast(true);
         setTimeout(() => setShowToast(false), 3000);
+      } else {
+        alert(data.message || "เกิดข้อผิดพลาดในการบันทึกข้อมูล");
       }
     } catch (err) {
       console.error("Save settings error:", err);
+      alert("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
+    } finally {
+      setIsSaving(false);
     }
   };
+
+  // ✅ แสดงหน้า Loading ขณะกำลังดึงข้อมูล
+  if (isLoading) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4">
+        <Loader className="w-12 h-12 text-indigo-600 animate-spin" />
+        <p className="text-slate-500 font-bold">กำลังโหลดข้อมูลการตั้งค่า...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
@@ -290,9 +338,13 @@ export default function Settings() {
 
         <button 
           onClick={handleSave}
-          className="flex items-center justify-center gap-2 bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95"
+          disabled={isSaving}
+          className={`flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-bold shadow-lg transition-all active:scale-95 ${
+            isSaving ? "bg-indigo-400 text-white cursor-not-allowed" : "bg-indigo-600 text-white shadow-indigo-100 hover:bg-indigo-700"
+          }`}
         >
-          <Save size={18}/> บันทึกการเปลี่ยนแปลง
+          {isSaving ? <Loader size={18} className="animate-spin" /> : <Save size={18}/>} 
+          {isSaving ? "กำลังบันทึก..." : "บันทึกการเปลี่ยนแปลง"}
         </button>
       </div>
 
@@ -365,7 +417,7 @@ export default function Settings() {
                     <input
                       value={settings.store_name || ""}
                       onChange={(e)=>setSettings({...settings, store_name:e.target.value})}
-                      className="w-full px-5 py-3.5 bg-slate-50 rounded-2xl font-bold text-slate-700"
+                      className="w-full px-5 py-3.5 bg-slate-50 rounded-2xl font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20"
                     />
                   </div>
 
@@ -378,9 +430,10 @@ export default function Settings() {
                       <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16}/>
 
                       <input
+                        type="email"
                         value={settings.email || ""}
                         onChange={(e)=>setSettings({...settings, email:e.target.value})}
-                        className="w-full pl-11 pr-5 py-3.5 bg-slate-50 rounded-2xl font-bold text-slate-700"
+                        className="w-full pl-11 pr-5 py-3.5 bg-slate-50 rounded-2xl font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20"
                       />
                     </div>
                   </div>
@@ -396,7 +449,7 @@ export default function Settings() {
                       <input
                         value={settings.phone || ""}
                         onChange={(e)=>setSettings({...settings, phone:e.target.value})}
-                        className="w-full pl-11 pr-5 py-3.5 bg-slate-50 rounded-2xl font-bold text-slate-700"
+                        className="w-full pl-11 pr-5 py-3.5 bg-slate-50 rounded-2xl font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20"
                       />
                     </div>
                   </div>
@@ -413,7 +466,7 @@ export default function Settings() {
                         rows="3"
                         value={settings.address || ""}
                         onChange={(e)=>setSettings({...settings, address:e.target.value})}
-                        className="w-full pl-11 pr-5 py-4 bg-slate-50 rounded-2xl font-bold text-slate-700 resize-none"
+                        className="w-full pl-11 pr-5 py-4 bg-slate-50 rounded-2xl font-bold text-slate-700 resize-none outline-none focus:ring-2 focus:ring-indigo-500/20"
                       />
                     </div>
                   </div>
@@ -433,33 +486,37 @@ export default function Settings() {
                 บัญชีธนาคารสำหรับรับชำระ
               </h3>
 
-              {payments.map((bank)=>(
-                <div key={bank.id} className="p-6 bg-slate-50 rounded-3xl border border-slate-100 flex items-center justify-between">
-
-                  <div className="flex items-center gap-4">
-
-                    <div className="w-12 h-12 bg-indigo-600 text-white rounded-xl flex items-center justify-center font-bold">
-                      {bank.bank_name?.charAt(0)}
+              {payments.length === 0 ? (
+                 <p className="text-sm text-slate-400 text-center py-4">ยังไม่มีข้อมูลบัญชีรับชำระเงิน</p>
+              ) : (
+                payments.map((bank)=>(
+                  <div key={bank.id} className="p-6 bg-slate-50 rounded-3xl border border-slate-100 flex items-center justify-between">
+  
+                    <div className="flex items-center gap-4">
+  
+                      <div className="w-12 h-12 bg-indigo-600 text-white rounded-xl flex items-center justify-center font-bold">
+                        {bank.bank_name?.charAt(0) || "B"}
+                      </div>
+  
+                      <div>
+                        <p className="text-sm font-bold text-slate-800">
+                          {bank.bank_name}
+                        </p>
+  
+                        <p className="text-xs text-slate-400 font-mono">
+                          {bank.account_number} | {bank.account_name}
+                        </p>
+                      </div>
+  
                     </div>
-
-                    <div>
-                      <p className="text-sm font-bold text-slate-800">
-                        {bank.bank_name}
-                      </p>
-
-                      <p className="text-xs text-slate-400 font-mono">
-                        {bank.account_number} | {bank.account_name}
-                      </p>
-                    </div>
-
+  
+                    <button className="text-xs font-bold text-indigo-600 hover:underline">
+                      แก้ไข
+                    </button>
+  
                   </div>
-
-                  <button className="text-xs font-bold text-indigo-600 hover:underline">
-                    แก้ไข
-                  </button>
-
-                </div>
-              ))}
+                ))
+              )}
 
               <button className="w-full py-4 border-2 border-dashed border-slate-200 rounded-3xl text-slate-400 font-bold text-sm hover:bg-slate-50 hover:border-indigo-300 hover:text-indigo-500 transition-all">
                 + เพิ่มบัญชีใหม่

@@ -28,13 +28,14 @@ const OrderHistory = () => {
   // ✅ 1. เพิ่ม State สำหรับสถานะ Loading ของ Filter และข้อมูลที่กรองแล้ว
   const [isFiltering, setIsFiltering] = useState(false);
   const [displayedOrders, setDisplayedOrders] = useState([]);
+  const apibaseUrl = import.meta.env.VITE_API_ENDPOINT || "http://localhost:8080/api";
 
   // ดึงข้อมูลครั้งแรก
   useEffect(() => {
     const fetchOrders = async () => {
       try {
         const token = localStorage.getItem("accessToken");
-        const response = await fetch("http://localhost:8080/api/orders", {
+        const response = await fetch(`${apibaseUrl}/orders`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",

@@ -36,17 +36,17 @@ export default function UserManagement() {
   // ✅ โหลดข้อมูลจาก API
   const fetchUsers = async () => {
     try {
+      const token = localStorage.getItem("accessToken") || localStorage.getItem("token") || "";
       const res = await fetch(`${apiEndpoint}/users`, {
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+          Authorization: `Bearer ${token}`,
         },
       }); 
       if (!res.ok) throw new Error("Failed to fetch users");
       const data = await res.json();
       const list = Array.isArray(data) ? data : data.users || data.data || [];
       setUsers(list);
-      console.log("🧩 First user data:", list[0]);
     } catch (error) {
       console.error("❌ Error fetching users:", error);
     } finally {
@@ -70,17 +70,15 @@ export default function UserManagement() {
   // ✅ บันทึกการแก้ไข
   const handleSaveEdit = async () => {
     if (!editingUser) return;
-    const userId = editingUser.id;
+    const userId = editingUser.id || editingUser.user_id;
 
-    console.log(userId);
-    
-    
     try {
+      const token = localStorage.getItem("accessToken") || localStorage.getItem("token") || "";
       const res = await fetch(`${apiEndpoint}/users/${userId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           username: editingUser.username,
@@ -99,30 +97,44 @@ export default function UserManagement() {
     }
   };
 
-  // ✅ ลบผู้ใช้
+  // ✅ ลบผู้ใช้ (Hard Delete)
   const handleDelete = async (user) => {
     try {
-      const res = await fetch(`${apiEndpoint}/users/${user.user_id}`, {
+      const userId = user.id || user.user_id;
+      const token = localStorage.getItem("accessToken") || localStorage.getItem("token") || "";
+      
+      // 🚀 ยิงไปที่ /users/:id/hard
+      const res = await fetch(`${apiEndpoint}/users/${userId}/hard`, {
         method: "DELETE",
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+          Authorization: `Bearer ${token}`,
         },
       });
-      if (!res.ok) throw new Error("Delete failed");
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "Delete failed");
+      }
+
+      // รีโหลดข้อมูลหลังจากลบสำเร็จ
       await fetchUsers();
       setConfirmDelete(null);
     } catch (err) {
       console.error("❌ Delete error:", err);
-      alert("ลบผู้ใช้ไม่สำเร็จ");
+      alert("ลบผู้ใช้ไม่สำเร็จ: " + err.message);
     }
   };
 
   // ✅ ตรวจสิทธิ์
   const canManage = (targetUser) => {
     if (!currentUser) return false;
+    const currentUserId = currentUser.id || currentUser.user_id;
+    const targetUserId = targetUser.id || targetUser.user_id;
+    
     if (currentUser.role === "super_admin") return true;
     if (currentUser.role === "admin" && targetUser.role === "user") return true;
-    return currentUser.user_id === targetUser.user_id;
+    return currentUserId === targetUserId;
   };
 
   return (
@@ -220,7 +232,7 @@ export default function UserManagement() {
               ) : (
                 filteredUsers.map((user) => (
                   <tr
-                    key={user.user_id}
+                    key={user.id || user.user_id}
                     className="hover:bg-slate-50/30 transition-colors group"
                   >
                     <td className="px-6 py-4">
@@ -267,7 +279,7 @@ export default function UserManagement() {
                           <button
                             onClick={() => setConfirmDelete(user)}
                             className="p-2 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 transition-all"
-                            title="ลบ"
+                            title="ลบถาวร"
                           >
                             <Trash2 size={16} />
                           </button>
@@ -293,7 +305,7 @@ export default function UserManagement() {
         />
       )}
 
-      {/* Modal: ลบ */}
+      {/* Modal: ลบถาวร */}
       {confirmDelete && (
         <DeleteModal
           user={confirmDelete}
@@ -409,27 +421,37 @@ function EditModal({ user, setUser, onSave, onClose, currentUser }) {
 
 function DeleteModal({ user, onCancel, onConfirm }) {
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl relative">
-        <h3 className="font-bold text-lg mb-4 text-rose-600">
-          ยืนยันการลบผู้ใช้
-        </h3>
-        <p className="text-slate-600 mb-4">
-          ต้องการลบ "{user.username}" ใช่หรือไม่?
-        </p>
-        <div className="flex justify-end gap-2">
-          <button
-            onClick={onCancel}
-            className="px-4 py-2 rounded-lg bg-slate-100 text-slate-600"
-          >
-            ยกเลิก
-          </button>
-          <button
-            onClick={onConfirm}
-            className="px-4 py-2 rounded-lg bg-rose-600 text-white font-bold"
-          >
-            ลบ
-          </button>
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-[2rem] p-6 sm:p-8 w-full max-w-sm shadow-2xl relative overflow-hidden">
+        {/* Background Highlight */}
+        <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-rose-50 to-transparent z-0"></div>
+        
+        <div className="relative z-10 text-center">
+          <div className="w-16 h-16 bg-white border-4 border-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
+            <Trash2 size={28} />
+          </div>
+          <h3 className="font-black text-xl mb-2 text-slate-800">
+            ลบผู้ใช้ถาวร (Hard Delete)
+          </h3>
+          <p className="text-slate-500 text-sm mb-8 leading-relaxed">
+            ต้องการลบผู้ใช้ <span className="font-bold text-slate-800">"{user.username}"</span> ใช่หรือไม่?<br/>
+            <span className="text-rose-500 font-bold">ข้อมูลนี้ไม่สามารถกู้คืนได้</span>
+          </p>
+
+          <div className="flex gap-3">
+            <button
+              onClick={onCancel}
+              className="flex-1 py-3 px-4 rounded-xl bg-slate-100 text-slate-600 font-bold hover:bg-slate-200 transition-all"
+            >
+              ยกเลิก
+            </button>
+            <button
+              onClick={onConfirm}
+              className="flex-1 py-3 px-4 rounded-xl bg-rose-500 text-white font-bold shadow-lg shadow-rose-500/30 hover:bg-rose-600 transition-all"
+            >
+              ยืนยันการลบ
+            </button>
+          </div>
         </div>
       </div>
     </div>

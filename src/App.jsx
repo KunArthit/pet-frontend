@@ -41,6 +41,7 @@ import WishlistPage from "./app/page/shop/WishlistPage";
 import ProductDetailPage from "./app/page/shop/ProductDetailPage";
 import EditProduct from "./app/page/admin/products/EditProduct";
 import CheckoutPage from "./app/page/shop/CheckoutPage";
+import EditCategory from "./app/page/admin/categorys/EditCategory";
 
 
 // ฟังก์ชันเช็ค Token
@@ -136,6 +137,7 @@ const routers = createBrowserRouter([
       { path: "invoices/:id", element: <InvoiceDetail /> },
       { path: "categories", element: <CategoryManagement /> },
       { path: "categories/add", element: <CreateCategory /> },
+      { path: "categories/edit/:id", element: <EditCategory />},
       { path: "quotations", element: <QuotationManagement /> },
       { path: "quotations/add", element: <QuotationCreate /> },
       { path: "quotations/:id", element: <QuotationDetail /> },

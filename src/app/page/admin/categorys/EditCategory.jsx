@@ -1,28 +1,62 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Save, Layout, Globe, Loader } from "lucide-react";
 
 const apiEndpoint = import.meta.env.VITE_API_ENDPOINT || "http://localhost:8080/api";
 
-export default function CreateCategory() {
+export default function EditCategory() {
   const navigate = useNavigate();
-  
+  const { id } = useParams(); // รับ ID จาก URL (เช่น /admin/categories/edit/1)
+
+  const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
   // State สำหรับเก็บข้อมูลฟอร์ม
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [isActive, setIsActive] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
 
-  // ฟังก์ชันอัปเดตชื่อ และสร้าง Slug ให้อัตโนมัติ
+  // -------------------------------------------------------------
+  // 1. ดึงข้อมูลหมวดหมู่เดิมมาแสดง (GET)
+  // -------------------------------------------------------------
+  useEffect(() => {
+    const fetchCategory = async () => {
+      try {
+        const token = localStorage.getItem("accessToken") || localStorage.getItem("token") || "";
+        const res = await fetch(`${apiEndpoint}/categories/${id}`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        
+        const data = await res.json();
+        if (data.success) {
+          setName(data.data.name);
+          setSlug(data.data.slug);
+          setIsActive(data.data.is_active === 1);
+        } else {
+          alert(data.message || "ไม่พบข้อมูลหมวดหมู่");
+          navigate("/admin/categories");
+        }
+      } catch (error) {
+        console.error("Fetch category error:", error);
+        alert("เกิดข้อผิดพลาดในการดึงข้อมูล");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) fetchCategory();
+  }, [id, navigate]);
+
+  // ฟังก์ชันช่วยสร้าง Slug อัตโนมัติเวลาพิมพ์ชื่อ (เผื่ออยากเปลี่ยน)
   const handleNameChange = (e) => {
     const newName = e.target.value;
     setName(newName);
-    // แปลงชื่อเป็น slug ทันทีเวลาพิมพ์ (เว้นวรรคเปลี่ยนเป็นขีดกลาง)
+    // แปลงชื่อเป็น slug อัตโนมัติเฉพาะตอนที่ user ยังไม่ได้แก้ slug เอง หรือ slug เดิมคล้ายกับชื่อ
     setSlug(newName.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, ''));
   };
 
   // -------------------------------------------------------------
-  // ฟังก์ชันบันทึกข้อมูล (POST)
+  // 2. บันทึกการแก้ไข (PUT)
   // -------------------------------------------------------------
   const handleSave = async () => {
     if (!name.trim()) {
@@ -33,35 +67,43 @@ export default function CreateCategory() {
     setIsSaving(true);
     try {
       const token = localStorage.getItem("accessToken") || localStorage.getItem("token") || "";
-      
-      const response = await fetch(`${apiEndpoint}/categories`, {
-        method: "POST",
+      const res = await fetch(`${apiEndpoint}/categories/${id}`, {
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}` // ✅ แนบ Token
+          "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({
           name: name,
           slug: slug || name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, ''),
-          is_active: isActive ? 1 : 0 // แปลง boolean เป็น 1 หรือ 0 ตามที่ DB ต้องการ
+          is_active: isActive ? 1 : 0
         })
       });
 
-      const data = await response.json();
+      const data = await res.json();
 
-      if (response.ok && data.success) {
-        alert("สร้างหมวดหมู่ใหม่สำเร็จ!");
-        navigate("/admin/categories"); // กลับไปหน้าจัดการหมวดหมู่
+      if (res.ok && data.success) {
+        alert("แก้ไขหมวดหมู่สำเร็จ!");
+        navigate("/admin/categories"); // กลับไปหน้ารวม
       } else {
-        alert(data.message || "ไม่สามารถสร้างหมวดหมู่ได้ (ชื่อหรือ Slug อาจซ้ำกัน)");
+        alert(data.message || "ไม่สามารถแก้ไขหมวดหมู่ได้ (ชื่อหรือ Slug อาจซ้ำ)");
       }
     } catch (error) {
-      console.error("Create category error:", error);
+      console.error("Update category error:", error);
       alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
     } finally {
       setIsSaving(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <Loader className="w-10 h-10 text-indigo-500 animate-spin mb-4" />
+        <p className="text-slate-500 font-bold">กำลังโหลดข้อมูล...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 animate-in slide-in-from-bottom-4 duration-500 pb-10">
@@ -81,7 +123,7 @@ export default function CreateCategory() {
           }`}
         >
           {isSaving ? <Loader size={18} className="animate-spin" /> : <Save size={18} />} 
-          {isSaving ? "กำลังบันทึก..." : "บันทึกหมวดหมู่"}
+          {isSaving ? "กำลังบันทึก..." : "บันทึกการแก้ไข"}
         </button>
       </div>
 
@@ -89,7 +131,7 @@ export default function CreateCategory() {
         <section className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 space-y-8">
           <div className="flex items-center gap-2 text-indigo-500">
             <Layout size={20}/>
-            <h3 className="font-bold text-slate-800 uppercase tracking-wider text-sm">รายละเอียดหมวดหมู่</h3>
+            <h3 className="font-bold text-slate-800 uppercase tracking-wider text-sm">แก้ไขรายละเอียดหมวดหมู่</h3>
           </div>
           
           <div className="space-y-6">
@@ -107,7 +149,7 @@ export default function CreateCategory() {
 
             {/* URL Slug */}
             <div>
-              <label className="block text-xs font-black text-slate-400 uppercase mb-2 tracking-widest">URL Slug (สามารถแก้ไขได้)</label>
+              <label className="block text-xs font-black text-slate-400 uppercase mb-2 tracking-widest">URL Slug (แก้ไขได้)</label>
               <div className="relative">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"><Globe size={16}/></div>
                 <input 
@@ -118,20 +160,20 @@ export default function CreateCategory() {
                   className="w-full pl-11 pr-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none text-slate-700 font-mono text-sm transition-all" 
                 />
               </div>
-              <p className="mt-2 text-[10px] text-slate-400">ระบบจะสร้าง URL ให้โดยอัตโนมัติจากชื่อหมวดหมู่ (แนะนำให้ใช้ภาษาอังกฤษและขีดกลาง)</p>
+              <p className="mt-2 text-[10px] text-slate-400">URL ที่ใช้แสดงบนหน้าเว็บ (แนะนำให้ใช้ภาษาอังกฤษและขีดกลาง)</p>
             </div>
 
             {/* Status Toggle */}
             <div className="pt-4 border-t border-slate-50 flex items-center justify-between">
               <div>
-                <p className="text-sm font-bold text-slate-700">เปิดใช้งานหมวดหมู่</p>
+                <p className="text-sm font-bold text-slate-700">สถานะหมวดหมู่</p>
                 <p className="text-xs text-slate-400">หากปิดอยู่ หมวดหมู่นี้จะไม่แสดงในหน้าเว็บไซต์</p>
               </div>
               <button 
                 onClick={() => setIsActive(!isActive)}
-                className={`w-12 h-6 rounded-full relative transition-all ${isActive ? "bg-emerald-500" : "bg-slate-200"}`}
+                className={`w-12 h-6 rounded-full relative transition-all ${isActive ? 'bg-emerald-500' : 'bg-slate-200'}`}
               >
-                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${isActive ? "right-1" : "left-1"}`}></div>
+                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${isActive ? 'right-1' : 'left-1'}`}></div>
               </button>
             </div>
           </div>

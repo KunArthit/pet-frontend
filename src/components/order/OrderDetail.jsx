@@ -146,7 +146,7 @@ const OrderDetail = () => {
       // 2. อัปโหลดรูปสลิปด้วย FormData
       const formData = new FormData();
       formData.append("slip_image", slipFile);
-      formData.append("transfer_at", new Date().toISOString());
+      formData.append("transfer_at", new Date().toISOString());      
 
       // 🚀 ยิง API อัปโหลดสลิป (พอสำเร็จ Backend จะเปลี่ยน Status เป็น Processing ให้อัตโนมัติ)
       const uploadRes = await fetch(`${apiBaseUrl}/payments/${paymentId}/upload-slip`, {
@@ -404,6 +404,7 @@ const OrderDetail = () => {
                       alt="Slip Preview"
                       className="w-full h-48 object-contain bg-gray-50"
                     />
+                    
 
                     {slipPreview && (
                       <button

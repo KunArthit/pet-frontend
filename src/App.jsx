@@ -1,7 +1,10 @@
 /* eslint-disable react-hooks/error-boundaries */
 // src/App.jsx
 import "./App.css";
+import { useEffect } from "react";
 import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
+import { hasAccepted } from "./utils/consent";
+import CookieBanner from "./components/CookieBanner";
 import Home from "./app/page/home/Home";
 import DashBoard from "@/components/home/DashBoard";
 import Error from "./app/page/error/Error";
@@ -186,8 +189,50 @@ const routers = createBrowserRouter([
   },
 ]);
 
+const loadAnalytics = () => {
+  if (window.__analyticsLoaded) return; // ✅ กันโหลดซ้ำ
+
+  window.__analyticsLoaded = true;
+
+  const script = document.createElement("script");
+  script.src = "https://www.googletagmanager.com/gtag/js?id=GA_ID";
+  script.async = true;
+
+  document.head.appendChild(script);
+
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){window.dataLayer.push(arguments);}
+  gtag("js", new Date());
+  gtag("config", "GA_ID");
+
+  console.log("✅ Analytics Loaded");
+};
+
 function App() {
-  return <RouterProvider router={routers} />;
+  useEffect(() => {
+    // ✅ โหลดตอนเข้าเว็บ (ถ้าเคย accept แล้ว)
+    if (hasAccepted()) {
+      loadAnalytics();
+    }
+
+    // ✅ โหลดทันทีหลัง user กด Accept
+    const handler = () => {
+      loadAnalytics();
+    };
+
+    window.addEventListener("consent-accepted", handler);
+
+    return () => {
+      window.removeEventListener("consent-accepted", handler);
+    };
+  }, []);
+  
+  return (
+    <>
+      <RouterProvider router={routers} />
+      <CookieBanner />
+    </>
+  );
 }
 
 export default App;

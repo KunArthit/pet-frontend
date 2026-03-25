@@ -1,3 +1,882 @@
+/* eslint-disable no-unused-vars */
+// import React, { useState, useEffect } from "react";
+// import { useParams, useNavigate } from "react-router-dom";
+// import {
+//   Save,
+//   ArrowLeft,
+//   Package,
+//   Tag,
+//   Layers,
+//   Info,
+//   DollarSign,
+//   Database,
+//   ImageIcon,
+//   CheckCircle2,
+//   AlertCircle,
+// } from "lucide-react";
+
+// const apiEndpoint =
+//   import.meta.env.VITE_API_ENDPOINT || "http://localhost:8080/api";
+
+// export default function EditProduct() {
+//   const { id } = useParams();
+//   const navigate = useNavigate();
+
+//   const [loading, setLoading] = useState(true);
+//   const [saving, setSaving] = useState(false);
+//   const [error, setError] = useState(null);
+
+//   const [product, setProduct] = useState({
+//     name: "",
+//     slug: "",
+//     sku: "",
+//     category_id: "",
+//     description: "",
+//     price: 0,
+//     stock_quantity: 0,
+//     image_url: "",
+//     is_active: 1,
+//   });
+
+//   const [productImages, setProductImages] = useState([]);
+//   const [uploading, setUploading] = useState(false);
+//   const [categories, setCategories] = useState([]);
+//   const [selectedFiles, setSelectedFiles] = useState([]);
+//   const [previewImages, setPreviewImages] = useState([]);
+
+//   const [toast, setToast] = useState({
+//     show: false,
+//     message: "",
+//     type: "success",
+//   });
+
+//   const showToast = (message, type = "success") => {
+//     setToast({ show: true, message, type });
+//     setTimeout(() => setToast({ show: false, message: "" }), 3000);
+//   };
+
+//   // ✅ โหลดรูปภาพเพิ่มเติมของสินค้า
+//   const fetchProductImages = async () => {
+//     try {
+//       const res = await fetch(`${apiEndpoint}/products/${id}`);
+//       const data = await res.json();
+//       if (data.success && data.data?.gallery) {
+//         const fullUrls = data.data.gallery.map((img) => ({
+//           ...img,
+//           image_url: img.image_url.startsWith("http")
+//             ? img.image_url
+//             : `${apiEndpoint.replace("/api", "")}${img.image_url}`,
+//         }));
+//         setProductImages(fullUrls);
+//       }
+//     } catch (err) {
+//       console.error("โหลดรูปภาพไม่สำเร็จ:", err);
+//     }
+//   };
+
+//   // useEffect(() => {
+//   //   fetchProductImages();
+//   // }, [id]);
+
+//   useEffect(() => {
+//     const fetchData = async () => {
+//       try {
+//         const [prodRes, catRes] = await Promise.all([
+//           fetch(`${apiEndpoint}/products/${id}`),
+//           fetch(`${apiEndpoint}/categories`),
+//         ]);
+
+//         if (!prodRes.ok) throw new Error("ไม่สามารถโหลดข้อมูลสินค้าได้");
+
+//         const prodData = await prodRes.json();
+//         const catData = await catRes.json();
+
+//         // categories
+//         if (catData.success) {
+//           setCategories(catData.data || []);
+//         }
+
+//         const p = prodData.data.product || {};
+
+//         // product data
+//         setProduct({
+//           name: p.name ?? "",
+//           slug: p.slug ?? "",
+//           sku: p.sku ?? "",
+//           category_id: p.category_id ?? "",
+//           description: p.description ?? "",
+//           price: parseFloat(p.price ?? 0),
+//           stock_quantity: p.stock_quantity ?? 0,
+//           image_url: p.image_url
+//             ? p.image_url.startsWith("http")
+//               ? p.image_url
+//               : `${apiEndpoint.replace("/api", "")}${p.image_url}`
+//             : "",
+//           is_active: Number(p.is_active ?? 1),
+//         });
+
+//         // gallery images
+//         if (prodData.data?.gallery) {
+//           const fullUrls = prodData.data.gallery.map((img) => ({
+//             ...img,
+//             image_url: img.image_url.startsWith("http")
+//               ? img.image_url
+//               : `${apiEndpoint.replace("/api", "")}${img.image_url}`,
+//           }));
+
+//           setProductImages(fullUrls);
+//         }
+//       } catch (err) {
+//         console.error(err);
+//         setError(err.message);
+//       } finally {
+//         setLoading(false);
+//       }
+//     };
+
+//     fetchData();
+//   }, [id]);
+
+//   // ✅ อัปโหลดรูปภาพจากเครื่อง (ส่งไฟล์จริง)
+//   // const handleUploadImage = async (e) => {
+//   //   const file = e.target.files[0];
+//   //   if (!file) return;
+//   //   setUploading(true);
+//   //   try {
+//   //     // STEP 1: อัปโหลดไปที่ /upload
+//   //     const form = new FormData();
+//   //     form.append("file", file);
+//   //     const uploadRes = await fetch(`${apiEndpoint}/upload`, {
+//   //       method: "POST",
+//   //       body: form,
+//   //     });
+//   //     const uploadData = await uploadRes.json();
+//   //     if (!uploadData.success) throw new Error("อัปโหลดภาพไม่สำเร็จ");
+
+//   //     // STEP 2: เพิ่มลง gallery
+//   //     const res = await fetch(`${apiEndpoint}/products/${id}/images`, {
+//   //       method: "POST",
+//   //       headers: { "Content-Type": "application/json" },
+//   //       body: JSON.stringify({
+//   //         image_url: uploadData.url,
+//   //         sort_order: productImages.length,
+//   //       }),
+//   //     });
+//   //     if (!res.ok) throw new Error("เพิ่มรูปภาพไม่สำเร็จ");
+
+//   //     showToast("✅ เพิ่มรูปสำเร็จ", "success");
+//   //     fetchProductImages();
+//   //   } catch (err) {
+//   //     showToast(err.message, "error");
+//   //   } finally {
+//   //     setUploading(false);
+//   //   }
+//   // };
+
+//   const handleSelectImages = (e) => {
+//     const files = Array.from(e.target.files);
+//     if (!files.length) return;
+
+//     setSelectedFiles((prev) => [...prev, ...files]);
+
+//     const previews = files.map((file) => ({
+//       file,
+//       url: URL.createObjectURL(file),
+//     }));
+
+//     setPreviewImages((prev) => [...prev, ...previews]);
+
+//     e.target.value = null;
+//   };
+
+//   const handleRemovePreview = (index) => {
+//     setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+//     setPreviewImages((prev) => prev.filter((_, i) => i !== index));
+//   };
+
+//   const handleUploadAll = async () => {
+//     if (!selectedFiles.length) return;
+
+//     setUploading(true);
+
+//     try {
+//       await Promise.all(
+//         selectedFiles.map(async (file, i) => {
+//           const form = new FormData();
+//           form.append("file", file);
+
+//           const uploadRes = await fetch(`${apiEndpoint}/upload`, {
+//             method: "POST",
+//             body: form,
+//           });
+
+//           const uploadData = await uploadRes.json();
+//           if (!uploadData.success) throw new Error("upload fail");
+
+//           const res = await fetch(`${apiEndpoint}/products/${id}/images`, {
+//             method: "POST",
+//             headers: { "Content-Type": "application/json" },
+//             body: JSON.stringify({
+//               image_url: uploadData.url,
+//               sort_order: productImages.length + i,
+//             }),
+//           });
+
+//           if (!res.ok) throw new Error("เพิ่มรูปไม่สำเร็จ");
+//         }),
+//       );
+
+//       showToast("✅ อัปโหลดสำเร็จ", "success");
+
+//       setSelectedFiles([]);
+//       setPreviewImages([]);
+//       fetchProductImages();
+//     } catch (err) {
+//       showToast(err.message, "error");
+//     } finally {
+//       setUploading(false);
+//     }
+//   };
+
+//   const handleDrop = (e) => {
+//     e.preventDefault();
+//     const files = Array.from(e.dataTransfer.files);
+
+//     const previews = files.map((file) => ({
+//       file,
+//       url: URL.createObjectURL(file),
+//     }));
+
+//     setSelectedFiles((prev) => [...prev, ...files]);
+//     setPreviewImages((prev) => [...prev, ...previews]);
+//   };
+
+//   const handleDragOver = (e) => {
+//     e.preventDefault();
+//   };
+
+//   // const handleUploadImage = async (e) => {
+//   //   const files = Array.from(e.target.files);
+//   //   if (!files.length) return;
+
+//   //   setUploading(true);
+
+//   //   try {
+//   //     await Promise.all(
+//   //       files.map(async (file, i) => {
+//   //         const form = new FormData();
+//   //         form.append("file", file);
+
+//   //         // STEP 1: upload
+//   //         const uploadRes = await fetch(`${apiEndpoint}/upload`, {
+//   //           method: "POST",
+//   //           body: form,
+//   //         });
+
+//   //         const uploadData = await uploadRes.json();
+//   //         if (!uploadData.success) throw new Error("อัปโหลดภาพไม่สำเร็จ");
+
+//   //         // STEP 2: add gallery
+//   //         const res = await fetch(`${apiEndpoint}/products/${id}/images`, {
+//   //           method: "POST",
+//   //           headers: { "Content-Type": "application/json" },
+//   //           body: JSON.stringify({
+//   //             image_url: uploadData.url,
+//   //             sort_order: productImages.length + i,
+//   //           }),
+//   //         });
+
+//   //         if (!res.ok) throw new Error("เพิ่มรูปภาพไม่สำเร็จ");
+//   //       })
+//   //     );
+
+//   //     showToast("✅ อัปโหลดหลายรูปสำเร็จ", "success");
+//   //     fetchProductImages();
+//   //   } catch (err) {
+//   //     showToast(err.message, "error");
+//   //   } finally {
+//   //     setUploading(false);
+//   //     e.target.value = null; // ✅ สำคัญ
+//   //   }
+//   // };
+
+//   // ✅ อัปโหลดรูปปกสินค้า (แทนที่ image_url เดิม)
+//   const handleUploadMainImage = async (e) => {
+//     const file = e.target.files[0];
+//     if (!file) return;
+//     setUploading(true);
+//     try {
+//       // STEP 1: upload ไป /upload
+//       const form = new FormData();
+//       form.append("file", file);
+//       const uploadRes = await fetch(`${apiEndpoint}/upload`, {
+//         method: "POST",
+//         body: form,
+//       });
+//       const uploadData = await uploadRes.json();
+//       if (!uploadData.success) throw new Error("อัปโหลดภาพไม่สำเร็จ");
+
+//       // STEP 2: อัปเดต image_url ในสินค้า
+//       const res = await fetch(`${apiEndpoint}/products/${id}`, {
+//         method: "PUT",
+//         headers: {
+//           "Content-Type": "application/json",
+//           Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+//         },
+//         body: JSON.stringify({ image_url: uploadData.url }),
+//       });
+
+//       if (!res.ok) throw new Error("อัปเดตรูปปกไม่สำเร็จ");
+
+//       showToast("✅ อัปโหลดรูปปกสำเร็จ!", "success");
+
+//       // STEP 3: อัปเดต state ให้โชว์ภาพใหม่
+//       setProduct((prev) => ({
+//         ...prev,
+//         image_url: `${apiEndpoint.replace("/api", "")}${uploadData.url}`,
+//       }));
+//     } catch (err) {
+//       showToast(err.message, "error");
+//     } finally {
+//       setUploading(false);
+//     }
+//   };
+
+//   // ✅ ลบรูปภาพ
+//   const handleDeleteImage = async (imageId) => {
+//     if (!confirm("คุณต้องการลบรูปนี้ใช่ไหม?")) return;
+//     try {
+//       const res = await fetch(`${apiEndpoint}/products/images/${imageId}`, {
+//         method: "DELETE",
+//       });
+//       if (!res.ok) throw new Error("ลบรูปภาพไม่สำเร็จ");
+//       showToast("🗑️ ลบรูปภาพเรียบร้อย!", "success");
+//       fetchProductImages();
+//     } catch (err) {
+//       showToast(err.message, "error");
+//     }
+//   };
+
+//   // ✅ ลบรูปหลัก (image_url)
+//   const handleDeleteMainImage = async () => {
+//     if (!confirm("คุณต้องการลบภาพปกสินค้านี้ใช่ไหม?")) return;
+
+//     try {
+//       const res = await fetch(`${apiEndpoint}/products/${id}`, {
+//         method: "PUT",
+//         headers: {
+//           "Content-Type": "application/json",
+//           Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+//         },
+//         body: JSON.stringify({ image_url: "" }), // ✅ เคลียร์ค่า image_url
+//       });
+
+//       if (!res.ok) throw new Error("ลบภาพปกไม่สำเร็จ");
+
+//       showToast("🗑️ ลบภาพปกเรียบร้อย!", "success");
+//       setProduct((prev) => ({ ...prev, image_url: "" })); // ✅ อัปเดต state
+//     } catch (err) {
+//       showToast(err.message, "error");
+//     }
+//   };
+
+//   // ✅ โหลดข้อมูลสินค้า + categories
+//   // useEffect(() => {
+//   //   const fetchData = async () => {
+//   //     try {
+//   //       const [prodRes, catRes] = await Promise.all([
+//   //         fetch(`${apiEndpoint}/products/${id}`),
+//   //         fetch(`${apiEndpoint}/categories`),
+//   //       ]);
+
+//   //       if (!prodRes.ok) throw new Error("ไม่สามารถโหลดข้อมูลสินค้าได้");
+
+//   //       const prodData = await prodRes.json();
+//   //       const catData = await catRes.json();
+
+//   //       if (catData.success) setCategories(catData.data || []);
+
+//   //       const p = prodData.data.product || {};
+
+//   //       setProduct({
+//   //         name: p.name ?? "",
+//   //         slug: p.slug ?? "",
+//   //         sku: p.sku ?? "",
+//   //         category_id: p.category_id ?? "",
+//   //         description: p.description ?? "",
+//   //         price: parseFloat(p.price ?? 0),
+//   //         stock_quantity: p.stock_quantity ?? 0,
+//   //         image_url: p.image_url
+//   //           ? p.image_url.startsWith("http")
+//   //             ? p.image_url
+//   //             : `${apiEndpoint.replace("/api", "")}${p.image_url}`
+//   //           : "",
+//   //         is_active: Number(p.is_active ?? 1),
+//   //       });
+//   //     } catch (err) {
+//   //       console.error(err);
+//   //       setError(err.message);
+//   //     } finally {
+//   //       setLoading(false);
+//   //     }
+//   //   };
+
+//   //   fetchData();
+//   // }, [id]);
+
+//   const handleChange = (e) => {
+//     const { name, value, type } = e.target;
+//     setProduct((prev) => ({
+//       ...prev,
+//       [name]: type === "number" ? Number(value) : value,
+//     }));
+//   };
+
+//   // ✅ ฟังก์ชันบันทึกสินค้า
+//   const handleSubmit = async (e) => {
+//     e.preventDefault();
+//     setSaving(true);
+//     try {
+//       const res = await fetch(`${apiEndpoint}/products/${id}`, {
+//         method: "PUT",
+//         headers: {
+//           "Content-Type": "application/json",
+//           Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+//         },
+//         body: JSON.stringify(product),
+//       });
+
+//       if (!res.ok) throw new Error("การอัปเดตล้มเหลว");
+
+//       showToast("บันทึกการแก้ไขสินค้าเรียบร้อย!", "success");
+//       setTimeout(() => navigate("/admin/products"), 1200);
+//     } catch (err) {
+//       showToast(err.message, "error");
+//     } finally {
+//       setSaving(false);
+//     }
+//   };
+
+//   if (loading) {
+//     return (
+//       <div className="flex items-center justify-center min-h-[60vh]">
+//         <div className="flex flex-col items-center gap-4 text-slate-500">
+//           <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+//           <p className="font-semibold text-sm">กำลังโหลดข้อมูลสินค้า...</p>
+//         </div>
+//       </div>
+//     );
+//   }
+//   if (error)
+//     return (
+//       <div className="p-10 text-center text-rose-500 font-bold">
+//         Error: {error}
+//       </div>
+//     );
+
+//   return (
+//     <div className="max-w-4xl mx-auto p-6 space-y-6 animate-in fade-in duration-500">
+//       {/* ✅ Toast */}
+//       {toast.show && (
+//         <div className="fixed bottom-6 right-6 z-[100] animate-in slide-in-from-right">
+//           <div
+//             className={`p-4 rounded-xl shadow-xl flex items-center gap-3 border-l-4 ${
+//               toast.type === "success"
+//                 ? "bg-white border-emerald-500 text-emerald-600"
+//                 : "bg-white border-rose-500 text-rose-600"
+//             }`}
+//           >
+//             {toast.type === "success" ? (
+//               <CheckCircle2 size={20} />
+//             ) : (
+//               <AlertCircle size={20} />
+//             )}
+//             <span className="font-semibold text-sm">{toast.message}</span>
+//           </div>
+//         </div>
+//       )}
+
+//       {/* Header */}
+//       <div className="flex items-center justify-between">
+//         <button
+//           onClick={() => navigate(-1)}
+//           className="flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors"
+//         >
+//           <ArrowLeft size={20} />
+//           <span className="font-bold">ย้อนกลับ</span>
+//         </button>
+//         <h2 className="text-2xl font-black text-slate-800">แก้ไขสินค้า</h2>
+//         <div className="w-20"></div>
+//       </div>
+
+//       <form
+//         onSubmit={handleSubmit}
+//         className="grid grid-cols-1 md:grid-cols-3 gap-6"
+//       >
+//         {/* LEFT SIDE */}
+//         <div className="md:col-span-2 space-y-6">
+//           {/* ข้อมูลทั่วไป */}
+//           <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+//             <h3 className="font-bold text-slate-700 flex items-center gap-2">
+//               <Package size={18} className="text-indigo-500" /> ข้อมูลทั่วไป
+//             </h3>
+
+//             <div className="space-y-2">
+//               <label className="text-xs font-black uppercase text-slate-400 ml-1">
+//                 ชื่อสินค้า
+//               </label>
+//               <input
+//                 required
+//                 name="name"
+//                 value={product.name}
+//                 onChange={handleChange}
+//                 placeholder="ระบุชื่อสินค้า..."
+//                 className="w-full px-4 py-3 bg-slate-50 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-medium"
+//               />
+//             </div>
+
+//             <div className="grid grid-cols-2 gap-4">
+//               <div className="space-y-2">
+//                 <label className="text-xs font-black uppercase text-slate-400 ml-1 flex items-center gap-1">
+//                   <Tag size={12} /> Slug (URL)
+//                 </label>
+//                 <input
+//                   name="slug"
+//                   value={product.slug}
+//                   onChange={handleChange}
+//                   className="w-full px-4 py-3 bg-slate-50 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none text-sm"
+//                 />
+//               </div>
+//               <div className="space-y-2">
+//                 <label className="text-xs font-black uppercase text-slate-400 ml-1 flex items-center gap-1">
+//                   <Database size={12} /> SKU
+//                 </label>
+//                 <input
+//                   name="sku"
+//                   value={product.sku}
+//                   onChange={handleChange}
+//                   className="w-full px-4 py-3 bg-slate-50 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none text-sm"
+//                 />
+//               </div>
+//             </div>
+
+//             <div className="space-y-2">
+//               <label className="text-xs font-black uppercase text-slate-400 ml-1 flex items-center gap-1">
+//                 <Info size={12} /> รายละเอียดสินค้า
+//               </label>
+//               <textarea
+//                 name="description"
+//                 rows="4"
+//                 value={product.description}
+//                 onChange={handleChange}
+//                 className="w-full px-4 py-3 bg-slate-50 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none text-sm"
+//               />
+//             </div>
+//           </div>
+
+//           {/* ✅ รูปภาพสินค้า */}
+//           <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+//             <h3 className="font-bold text-slate-700 flex items-center gap-2">
+//               <ImageIcon size={18} className="text-indigo-500" /> รูปปกสินค้า
+//             </h3>
+
+//             {/* ✅ รูปหลัก */}
+//             {product.image_url ? (
+//               <div className="relative rounded-xl overflow-hidden border border-slate-100 aspect-video bg-slate-50">
+//                 <img
+//                   src={product.image_url}
+//                   alt="main"
+//                   className="w-full h-full object-contain"
+//                 />
+//                 <button
+//                   type="button"
+//                   onClick={handleDeleteMainImage}
+//                   className="absolute top-2 right-2 bg-rose-500 hover:bg-rose-600 text-white rounded-md p-2 shadow opacity-80 hover:opacity-100 transition"
+//                 >
+//                   ✕
+//                 </button>
+//               </div>
+//             ) : (
+//               // ✅ กรณีไม่มีรูปปก
+//               <div className="aspect-video rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center bg-slate-50 text-slate-400">
+//                 <ImageIcon size={40} className="opacity-50 mb-2" />
+//                 <p className="text-sm font-medium">ยังไม่มีรูปปกสินค้า</p>
+
+//                 {/* ปุ่มอัปโหลดแสดงในกรอบนี้เลย */}
+//                 <label
+//                   htmlFor="uploadMainImage"
+//                   className={`mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold cursor-pointer transition-all shadow-sm
+//         ${
+//           uploading
+//             ? "bg-slate-300 text-slate-600 cursor-not-allowed"
+//             : "bg-emerald-600 hover:bg-emerald-700 text-white"
+//         }`}
+//                 >
+//                   <ImageIcon size={16} />
+//                   {uploading ? "กำลังอัปโหลด..." : "อัปโหลดรูป"}
+//                   <input
+//                     id="uploadMainImage"
+//                     type="file"
+//                     accept="image/*"
+//                     disabled={uploading}
+//                     onChange={handleUploadMainImage}
+//                     className="hidden"
+//                   />
+//                 </label>
+//               </div>
+//             )}
+
+//             {/* รูปเพิ่มเติม */}
+//             {/* ✅ รูปภาพเพิ่มเติม */}
+//             <div>
+//               <label className="text-xs font-black uppercase text-slate-400 ml-1 block mb-2">
+//                 รูปภาพรายละเอียดสินค้า
+//               </label>
+
+//               {productImages.length > 0 ? (
+//                 <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
+//                   {productImages.map((img, idx) => (
+//                     <div key={idx} className="relative group">
+//                       <img
+//                         src={img.image_url}
+//                         alt={`Product ${idx}`}
+//                         className="rounded-xl border border-slate-200 object-cover w-full h-24"
+//                       />
+//                       <span className="absolute top-1 left-1 bg-white/80 text-[10px] rounded-md px-2 py-0.5 font-bold">
+//                         #{img.sort_order}
+//                       </span>
+//                       <button
+//                         type="button"
+//                         onClick={() => handleDeleteImage(img.id)}
+//                         className="absolute top-1 right-1 bg-rose-500 text-white rounded-md p-1 opacity-0 group-hover:opacity-100 transition"
+//                       >
+//                         ✕
+//                       </button>
+//                     </div>
+//                   ))}
+//                 </div>
+//               ) : (
+//                 // ✅ กรณีไม่มีรูปเพิ่มเติม
+//                 <div className="rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center bg-slate-50 text-slate-400 py-8">
+//                   <ImageIcon size={36} className="opacity-50 mb-2" />
+//                   <p className="text-sm font-medium">ยังไม่มีรูปภาพเพิ่มเติม</p>
+//                 </div>
+//               )}
+//             </div>
+
+//             <div className="space-y-3">
+//               <label className="text-xs font-black uppercase text-slate-400 ml-1">
+//                 เพิ่มรูปภาพใหม่จากเครื่อง
+//               </label>
+
+//               {/* Preview */}
+//               {previewImages.length > 0 && (
+//                 <div className="grid grid-cols-3 md:grid-cols-4 gap-3 mt-2">
+//                   {previewImages.map((img, idx) => (
+//                     <div
+//                       key={idx}
+//                       className="relative group rounded-xl overflow-hidden border border-slate-200 bg-white"
+//                     >
+//                       <img src={img.url} className="w-full h-24 object-cover" />
+
+//                       {/* index */}
+//                       <span className="absolute top-1 left-1 bg-white/80 text-[10px] rounded-md px-2 py-0.5 font-bold">
+//                         #{productImages.length + idx}
+//                       </span>
+
+//                       {/* delete */}
+//                       <button
+//                         type="button"
+//                         onClick={() => handleRemovePreview(idx)}
+//                         className="absolute top-1 right-1 bg-rose-500 text-white rounded-md p-1 opacity-0 group-hover:opacity-100 transition"
+//                       >
+//                         ✕
+//                       </button>
+//                     </div>
+//                   ))}
+//                 </div>
+//               )}
+
+//               {/* Upload button */}
+//               {previewImages.length > 0 && (
+//                 <button
+//                   type="button"
+//                   onClick={handleUploadAll}
+//                   disabled={uploading}
+//                   className={`w-full py-3 rounded-xl font-bold text-white transition-all shadow-md flex items-center justify-center gap-2
+//         ${
+//           uploading
+//             ? "bg-slate-400 cursor-not-allowed"
+//             : "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200"
+//         }`}
+//                 >
+//                   {uploading ? (
+//                     "กำลังอัปโหลด..."
+//                   ) : (
+//                     <>
+//                       <ImageIcon size={18} /> อัปโหลดรูปทั้งหมด
+//                     </>
+//                   )}
+//                 </button>
+//               )}
+
+//               {/* Dropzone */}
+//               <div
+//                 onDrop={handleDrop}
+//                 onDragOver={handleDragOver}
+//                 className={`rounded-xl border-2 border-dashed p-6 text-center transition-all
+//       ${
+//         uploading
+//           ? "border-slate-200 bg-slate-100"
+//           : "border-slate-300 bg-slate-50 hover:border-indigo-400 hover:bg-indigo-50/30"
+//       }`}
+//               >
+//                 <ImageIcon
+//                   size={36}
+//                   className="mx-auto mb-2 text-slate-400 opacity-70"
+//                 />
+
+//                 <p className="text-sm font-medium text-slate-500">
+//                   ลากไฟล์มาวาง หรือเลือกไฟล์
+//                 </p>
+
+//                 <label
+//                   className={`mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold cursor-pointer transition-all shadow-sm
+//         ${
+//           uploading
+//             ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+//             : "bg-indigo-600 hover:bg-indigo-700 text-white"
+//         }`}
+//                 >
+//                   <ImageIcon size={16} />
+//                   {uploading ? "กำลังอัปโหลด..." : "เลือกไฟล์"}
+
+//                   <input
+//                     type="file"
+//                     multiple
+//                     accept="image/*"
+//                     onChange={handleSelectImages}
+//                     disabled={uploading}
+//                     className="hidden"
+//                   />
+//                 </label>
+//               </div>
+//             </div>
+//           </div>
+//         </div>
+
+//         {/* RIGHT SIDE */}
+//         <div className="space-y-6">
+//           {/* การตั้งค่า */}
+//           <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+//             <h3 className="font-bold text-slate-700 flex items-center gap-2">
+//               <DollarSign size={18} className="text-emerald-500" /> ราคา & สต็อก
+//             </h3>
+
+//             <div className="space-y-2">
+//               <label className="text-xs font-black uppercase text-slate-400 ml-1">
+//                 ราคา
+//               </label>
+//               <input
+//                 type="number"
+//                 name="price"
+//                 value={product.price}
+//                 onChange={handleChange}
+//                 className="w-full px-4 py-3 bg-slate-50 rounded-xl focus:ring-2 focus:ring-emerald-500/20 outline-none font-bold text-emerald-600"
+//               />
+//             </div>
+
+//             <div className="space-y-2">
+//               <label className="text-xs font-black uppercase text-slate-400 ml-1">
+//                 จำนวนในสต็อก
+//               </label>
+//               <input
+//                 type="number"
+//                 name="stock_quantity"
+//                 value={product.stock_quantity}
+//                 onChange={handleChange}
+//                 className="w-full px-4 py-3 bg-slate-50 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none"
+//               />
+//             </div>
+
+//             {/* ✅ dropdown หมวดหมู่ */}
+//             <div className="space-y-2">
+//               <label className="text-xs font-black uppercase text-slate-400 ml-1 flex items-center gap-1">
+//                 <Layers size={12} /> หมวดหมู่สินค้า
+//               </label>
+//               <select
+//                 name="category_id"
+//                 value={product.category_id}
+//                 onChange={handleChange}
+//                 className="w-full px-4 py-3 bg-slate-50 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none"
+//               >
+//                 {categories.map((cat) => (
+//                   <option key={cat.id} value={cat.id}>
+//                     {cat.name}
+//                   </option>
+//                 ))}
+//               </select>
+//             </div>
+//           </div>
+
+//           {/* ✅ สถานะสินค้า */}
+//           <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+//             <h3 className="font-bold text-slate-700 mb-4">สถานะสินค้า</h3>
+
+//             <div className="flex items-center justify-between">
+//               <span className="font-medium text-slate-600">
+//                 {product.is_active ? "เปิดการใช้งาน" : "ปิดการใช้งาน"}
+//               </span>
+
+//               <button
+//                 type="button"
+//                 onClick={() =>
+//                   setProduct((prev) => ({
+//                     ...prev,
+//                     is_active: prev.is_active ? 0 : 1,
+//                   }))
+//                 }
+//                 className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors duration-300 ${
+//                   product.is_active ? "bg-emerald-500" : "bg-slate-300"
+//                 }`}
+//               >
+//                 <span
+//                   className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform duration-300 ${
+//                     product.is_active ? "translate-x-7" : "translate-x-1"
+//                   }`}
+//                 />
+//               </button>
+//             </div>
+
+//             <p className="text-xs text-slate-400 mt-2">
+//               ใช้เปิด/ปิดการแสดงผลสินค้านี้ในหน้าร้าน
+//             </p>
+//           </div>
+
+//           {/* ปุ่มบันทึก */}
+//           <button
+//             type="submit"
+//             disabled={saving}
+//             className={`w-full py-4 rounded-2xl font-black text-white shadow-lg transition-all flex items-center justify-center gap-2 ${
+//               saving
+//                 ? "bg-slate-400 cursor-not-allowed"
+//                 : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200"
+//             }`}
+//           >
+//             {saving ? (
+//               "กำลังบันทึก..."
+//             ) : (
+//               <>
+//                 <Save size={20} /> บันทึกการเปลี่ยนแปลง
+//               </>
+//             )}
+//           </button>
+//         </div>
+//       </form>
+//     </div>
+//   );
+// }
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -16,6 +895,17 @@ import {
 
 const apiEndpoint =
   import.meta.env.VITE_API_ENDPOINT || "http://localhost:8080/api";
+
+// ✅ Helper: สร้าง URL รูปเต็มจาก path ที่ API คืนมา
+const toFullUrl = (url) => {
+  if (!url) return "";
+  return url.startsWith("http")
+    ? url
+    : `${apiEndpoint.replace("/api", "")}${url}`;
+};
+
+// ✅ Helper: ดึง auth token
+const getToken = () => localStorage.getItem("token") || "";
 
 export default function EditProduct() {
   const { id } = useParams();
@@ -54,29 +944,9 @@ export default function EditProduct() {
     setTimeout(() => setToast({ show: false, message: "" }), 3000);
   };
 
-  // ✅ โหลดรูปภาพเพิ่มเติมของสินค้า
-  const fetchProductImages = async () => {
-    try {
-      const res = await fetch(`${apiEndpoint}/products/${id}`);
-      const data = await res.json();
-      if (data.success && data.data?.gallery) {
-        const fullUrls = data.data.gallery.map((img) => ({
-          ...img,
-          image_url: img.image_url.startsWith("http")
-            ? img.image_url
-            : `${apiEndpoint.replace("/api", "")}${img.image_url}`,
-        }));
-        setProductImages(fullUrls);
-      }
-    } catch (err) {
-      console.error("โหลดรูปภาพไม่สำเร็จ:", err);
-    }
-  };
-
-  // useEffect(() => {
-  //   fetchProductImages();
-  // }, [id]);
-
+  // ==========================================
+  // 📦 โหลด product + categories ตอน mount
+  // ==========================================
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -90,14 +960,14 @@ export default function EditProduct() {
         const prodData = await prodRes.json();
         const catData = await catRes.json();
 
-        // categories
         if (catData.success) {
           setCategories(catData.data || []);
         }
 
-        const p = prodData.data.product || {};
+        // ✅ API คืน { success, data: { ...productFields, gallery: [] } }
+        //    ไม่มี .data.product ซ้อนอีกชั้น
+        const p = prodData.data || {};
 
-        // product data
         setProduct({
           name: p.name ?? "",
           slug: p.slug ?? "",
@@ -106,24 +976,17 @@ export default function EditProduct() {
           description: p.description ?? "",
           price: parseFloat(p.price ?? 0),
           stock_quantity: p.stock_quantity ?? 0,
-          image_url: p.image_url
-            ? p.image_url.startsWith("http")
-              ? p.image_url
-              : `${apiEndpoint.replace("/api", "")}${p.image_url}`
-            : "",
+          image_url: toFullUrl(p.image_url),
           is_active: Number(p.is_active ?? 1),
         });
 
-        // gallery images
-        if (prodData.data?.gallery) {
-          const fullUrls = prodData.data.gallery.map((img) => ({
-            ...img,
-            image_url: img.image_url.startsWith("http")
-              ? img.image_url
-              : `${apiEndpoint.replace("/api", "")}${img.image_url}`,
-          }));
-
-          setProductImages(fullUrls);
+        if (Array.isArray(p.gallery)) {
+          setProductImages(
+            p.gallery.map((img) => ({
+              ...img,
+              image_url: toFullUrl(img.image_url),
+            })),
+          );
         }
       } catch (err) {
         console.error(err);
@@ -136,55 +999,110 @@ export default function EditProduct() {
     fetchData();
   }, [id]);
 
-  // ✅ อัปโหลดรูปภาพจากเครื่อง (ส่งไฟล์จริง)
-  // const handleUploadImage = async (e) => {
-  //   const file = e.target.files[0];
-  //   if (!file) return;
-  //   setUploading(true);
-  //   try {
-  //     // STEP 1: อัปโหลดไปที่ /upload
-  //     const form = new FormData();
-  //     form.append("file", file);
-  //     const uploadRes = await fetch(`${apiEndpoint}/upload`, {
-  //       method: "POST",
-  //       body: form,
-  //     });
-  //     const uploadData = await uploadRes.json();
-  //     if (!uploadData.success) throw new Error("อัปโหลดภาพไม่สำเร็จ");
+  // ==========================================
+  // 🔄 Refresh gallery จาก API
+  // ==========================================
+  const fetchProductImages = async () => {
+    try {
+      const res = await fetch(`${apiEndpoint}/products/${id}`);
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data?.gallery)) {
+        setProductImages(
+          data.data.gallery.map((img) => ({
+            ...img,
+            image_url: toFullUrl(img.image_url),
+          })),
+        );
+      }
+    } catch (err) {
+      console.error("โหลดรูปภาพไม่สำเร็จ:", err);
+    }
+  };
 
-  //     // STEP 2: เพิ่มลง gallery
-  //     const res = await fetch(`${apiEndpoint}/products/${id}/images`, {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify({
-  //         image_url: uploadData.url,
-  //         sort_order: productImages.length,
-  //       }),
-  //     });
-  //     if (!res.ok) throw new Error("เพิ่มรูปภาพไม่สำเร็จ");
+  // ==========================================
+  // 🖼️ อัปโหลดรูปปกหลัก
+  // ✅ ส่งเป็น multipart/form-data ให้ตรงกับ PUT /:id ที่รับ t.File()
+  // ==========================================
+  const handleUploadMainImage = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.append("image", file); // ✅ field ชื่อ "image" ตาม body schema
 
-  //     showToast("✅ เพิ่มรูปสำเร็จ", "success");
-  //     fetchProductImages();
-  //   } catch (err) {
-  //     showToast(err.message, "error");
-  //   } finally {
-  //     setUploading(false);
-  //   }
-  // };
+      const res = await fetch(`${apiEndpoint}/products/${id}`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${getToken()}` },
+        // ❌ ไม่ต้องใส่ Content-Type เพราะ FormData จะ set boundary เอง
+        body: form,
+      });
 
+      console.log("token:", getToken());
+      console.log("form entries:", [...form.entries()]);
+
+      if (!res.ok) throw new Error("อัปโหลดรูปปกไม่สำเร็จ");
+
+      showToast("✅ อัปโหลดรูปปกสำเร็จ!", "success");
+
+      // Refresh รูปจาก API เพื่อให้ได้ URL จริง
+      const data = await res.json();
+      // อัปเดต state preview ทันทีก่อน API ส่ง URL กลับมา
+      setProduct((prev) => ({ ...prev, image_url: URL.createObjectURL(file) }));
+      // Refresh full product data เพื่อ sync URL จริง
+      const prodRes = await fetch(`${apiEndpoint}/products/${id}`);
+      const prodData = await prodRes.json();
+      if (prodData.success) {
+        setProduct((prev) => ({
+          ...prev,
+          image_url: toFullUrl(prodData.data?.image_url),
+        }));
+      }
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      setUploading(false);
+      e.target.value = null;
+    }
+  };
+
+  // ==========================================
+  // 🗑️ ลบรูปปกหลัก (clear image_url)
+  // ==========================================
+  const handleDeleteMainImage = async () => {
+    if (!confirm("คุณต้องการลบภาพปกสินค้านี้ใช่ไหม?")) return;
+    try {
+      // ✅ ส่ง FormData แม้ไม่มีไฟล์ เพราะ PUT endpoint รับ multipart
+      const form = new FormData();
+      form.append("image_url", "");
+
+      const res = await fetch(`${apiEndpoint}/products/${id}`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${getToken()}` },
+        body: form,
+      });
+
+      if (!res.ok) throw new Error("ลบภาพปกไม่สำเร็จ");
+      showToast("🗑️ ลบภาพปกเรียบร้อย!", "success");
+      setProduct((prev) => ({ ...prev, image_url: "" }));
+    } catch (err) {
+      showToast(err.message, "error");
+    }
+  };
+
+  // ==========================================
+  // 📁 เลือกไฟล์ gallery (preview ก่อน)
+  // ==========================================
   const handleSelectImages = (e) => {
     const files = Array.from(e.target.files);
     if (!files.length) return;
 
     setSelectedFiles((prev) => [...prev, ...files]);
-
     const previews = files.map((file) => ({
       file,
       url: URL.createObjectURL(file),
     }));
-
     setPreviewImages((prev) => [...prev, ...previews]);
-
     e.target.value = null;
   };
 
@@ -193,40 +1111,48 @@ export default function EditProduct() {
     setPreviewImages((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const files = Array.from(e.dataTransfer.files);
+    const previews = files.map((file) => ({
+      file,
+      url: URL.createObjectURL(file),
+    }));
+    setSelectedFiles((prev) => [...prev, ...files]);
+    setPreviewImages((prev) => [...prev, ...previews]);
+  };
+
+  const handleDragOver = (e) => e.preventDefault();
+
+  // ==========================================
+  // 📤 อัปโหลด gallery ทั้งหมด
+  // ✅ ส่ง multipart ตรงไปที่ POST /products/:id/images
+  //    ซึ่ง backend รับ image: t.File() และ sort_order: t.Optional(t.Numeric())
+  // ==========================================
   const handleUploadAll = async () => {
     if (!selectedFiles.length) return;
-
     setUploading(true);
-
     try {
       await Promise.all(
         selectedFiles.map(async (file, i) => {
           const form = new FormData();
-          form.append("file", file);
-
-          const uploadRes = await fetch(`${apiEndpoint}/upload`, {
-            method: "POST",
-            body: form,
-          });
-
-          const uploadData = await uploadRes.json();
-          if (!uploadData.success) throw new Error("upload fail");
+          form.append("image", file); // ✅ field ชื่อ "image" ตาม schema
+          form.append("sort_order", String(productImages.length + i));
 
           const res = await fetch(`${apiEndpoint}/products/${id}/images`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              image_url: uploadData.url,
-              sort_order: productImages.length + i,
-            }),
+            headers: { Authorization: `Bearer ${getToken()}` },
+            body: form,
           });
 
-          if (!res.ok) throw new Error("เพิ่มรูปไม่สำเร็จ");
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.message || "เพิ่มรูปไม่สำเร็จ");
+          }
         }),
       );
 
       showToast("✅ อัปโหลดสำเร็จ", "success");
-
       setSelectedFiles([]);
       setPreviewImages([]);
       fetchProductImages();
@@ -237,191 +1163,24 @@ export default function EditProduct() {
     }
   };
 
-  const handleDrop = (e) => {
-    e.preventDefault();
-    const files = Array.from(e.dataTransfer.files);
-
-    const previews = files.map((file) => ({
-      file,
-      url: URL.createObjectURL(file),
-    }));
-
-    setSelectedFiles((prev) => [...prev, ...files]);
-    setPreviewImages((prev) => [...prev, ...previews]);
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-  };
-
-  // const handleUploadImage = async (e) => {
-  //   const files = Array.from(e.target.files);
-  //   if (!files.length) return;
-
-  //   setUploading(true);
-
-  //   try {
-  //     await Promise.all(
-  //       files.map(async (file, i) => {
-  //         const form = new FormData();
-  //         form.append("file", file);
-
-  //         // STEP 1: upload
-  //         const uploadRes = await fetch(`${apiEndpoint}/upload`, {
-  //           method: "POST",
-  //           body: form,
-  //         });
-
-  //         const uploadData = await uploadRes.json();
-  //         if (!uploadData.success) throw new Error("อัปโหลดภาพไม่สำเร็จ");
-
-  //         // STEP 2: add gallery
-  //         const res = await fetch(`${apiEndpoint}/products/${id}/images`, {
-  //           method: "POST",
-  //           headers: { "Content-Type": "application/json" },
-  //           body: JSON.stringify({
-  //             image_url: uploadData.url,
-  //             sort_order: productImages.length + i,
-  //           }),
-  //         });
-
-  //         if (!res.ok) throw new Error("เพิ่มรูปภาพไม่สำเร็จ");
-  //       })
-  //     );
-
-  //     showToast("✅ อัปโหลดหลายรูปสำเร็จ", "success");
-  //     fetchProductImages();
-  //   } catch (err) {
-  //     showToast(err.message, "error");
-  //   } finally {
-  //     setUploading(false);
-  //     e.target.value = null; // ✅ สำคัญ
-  //   }
-  // };
-
-  // ✅ อัปโหลดรูปปกสินค้า (แทนที่ image_url เดิม)
-  const handleUploadMainImage = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setUploading(true);
-    try {
-      // STEP 1: upload ไป /upload
-      const form = new FormData();
-      form.append("file", file);
-      const uploadRes = await fetch(`${apiEndpoint}/upload`, {
-        method: "POST",
-        body: form,
-      });
-      const uploadData = await uploadRes.json();
-      if (!uploadData.success) throw new Error("อัปโหลดภาพไม่สำเร็จ");
-
-      // STEP 2: อัปเดต image_url ในสินค้า
-      const res = await fetch(`${apiEndpoint}/products/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
-        },
-        body: JSON.stringify({ image_url: uploadData.url }),
-      });
-
-      if (!res.ok) throw new Error("อัปเดตรูปปกไม่สำเร็จ");
-
-      showToast("✅ อัปโหลดรูปปกสำเร็จ!", "success");
-
-      // STEP 3: อัปเดต state ให้โชว์ภาพใหม่
-      setProduct((prev) => ({
-        ...prev,
-        image_url: `${apiEndpoint.replace("/api", "")}${uploadData.url}`,
-      }));
-    } catch (err) {
-      showToast(err.message, "error");
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  // ✅ ลบรูปภาพ
+  // ==========================================
+  // 🗑️ ลบรูป gallery
+  // ✅ เพิ่ม Authorization header
+  // ==========================================
   const handleDeleteImage = async (imageId) => {
     if (!confirm("คุณต้องการลบรูปนี้ใช่ไหม?")) return;
     try {
       const res = await fetch(`${apiEndpoint}/products/images/${imageId}`, {
         method: "DELETE",
+        headers: { Authorization: `Bearer ${getToken()}` },
       });
       if (!res.ok) throw new Error("ลบรูปภาพไม่สำเร็จ");
       showToast("🗑️ ลบรูปภาพเรียบร้อย!", "success");
-      fetchProductImages();
+      setProductImages((prev) => prev.filter((img) => img.id !== imageId));
     } catch (err) {
       showToast(err.message, "error");
     }
   };
-
-  // ✅ ลบรูปหลัก (image_url)
-  const handleDeleteMainImage = async () => {
-    if (!confirm("คุณต้องการลบภาพปกสินค้านี้ใช่ไหม?")) return;
-
-    try {
-      const res = await fetch(`${apiEndpoint}/products/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
-        },
-        body: JSON.stringify({ image_url: "" }), // ✅ เคลียร์ค่า image_url
-      });
-
-      if (!res.ok) throw new Error("ลบภาพปกไม่สำเร็จ");
-
-      showToast("🗑️ ลบภาพปกเรียบร้อย!", "success");
-      setProduct((prev) => ({ ...prev, image_url: "" })); // ✅ อัปเดต state
-    } catch (err) {
-      showToast(err.message, "error");
-    }
-  };
-
-  // ✅ โหลดข้อมูลสินค้า + categories
-  // useEffect(() => {
-  //   const fetchData = async () => {
-  //     try {
-  //       const [prodRes, catRes] = await Promise.all([
-  //         fetch(`${apiEndpoint}/products/${id}`),
-  //         fetch(`${apiEndpoint}/categories`),
-  //       ]);
-
-  //       if (!prodRes.ok) throw new Error("ไม่สามารถโหลดข้อมูลสินค้าได้");
-
-  //       const prodData = await prodRes.json();
-  //       const catData = await catRes.json();
-
-  //       if (catData.success) setCategories(catData.data || []);
-
-  //       const p = prodData.data.product || {};
-
-  //       setProduct({
-  //         name: p.name ?? "",
-  //         slug: p.slug ?? "",
-  //         sku: p.sku ?? "",
-  //         category_id: p.category_id ?? "",
-  //         description: p.description ?? "",
-  //         price: parseFloat(p.price ?? 0),
-  //         stock_quantity: p.stock_quantity ?? 0,
-  //         image_url: p.image_url
-  //           ? p.image_url.startsWith("http")
-  //             ? p.image_url
-  //             : `${apiEndpoint.replace("/api", "")}${p.image_url}`
-  //           : "",
-  //         is_active: Number(p.is_active ?? 1),
-  //       });
-  //     } catch (err) {
-  //       console.error(err);
-  //       setError(err.message);
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
-
-  //   fetchData();
-  // }, [id]);
 
   const handleChange = (e) => {
     const { name, value, type } = e.target;
@@ -431,21 +1190,38 @@ export default function EditProduct() {
     }));
   };
 
-  // ✅ ฟังก์ชันบันทึกสินค้า
+  // ==========================================
+  // 💾 บันทึกข้อมูลสินค้า (ข้อมูลตัวอักษร + ตัวเลข)
+  // ✅ ส่งเป็น FormData เพราะ PUT endpoint รับ multipart
+  //    (มี t.File() field อยู่ใน body schema)
+  // ==========================================
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
     try {
+      const form = new FormData();
+      form.append("name", product.name);
+      if (product.slug) form.append("slug", product.slug);
+      if (product.sku) form.append("sku", product.sku);
+      if (product.category_id)
+        form.append("category_id", String(product.category_id));
+      if (product.description) form.append("description", product.description);
+      form.append("price", String(product.price));
+      form.append("stock_quantity", String(product.stock_quantity));
+      form.append("is_active", String(product.is_active));
+      // ❌ ไม่ append image_url (เพราะไม่มีใน allowedFields ของ updateProduct)
+      //    รูปหลักจะเปลี่ยนผ่าน handleUploadMainImage เท่านั้น
+
       const res = await fetch(`${apiEndpoint}/products/${id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
-        },
-        body: JSON.stringify(product),
+        headers: { Authorization: `Bearer ${getToken()}` },
+        body: form,
       });
 
-      if (!res.ok) throw new Error("การอัปเดตล้มเหลว");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "การอัปเดตล้มเหลว");
+      }
 
       showToast("บันทึกการแก้ไขสินค้าเรียบร้อย!", "success");
       setTimeout(() => navigate("/admin/products"), 1200);
@@ -456,6 +1232,9 @@ export default function EditProduct() {
     }
   };
 
+  // ==========================================
+  // 🔄 Loading / Error states
+  // ==========================================
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -473,9 +1252,12 @@ export default function EditProduct() {
       </div>
     );
 
+  // ==========================================
+  // 🖼️ UI
+  // ==========================================
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6 animate-in fade-in duration-500">
-      {/* ✅ Toast */}
+      {/* Toast */}
       {toast.show && (
         <div className="fixed bottom-6 right-6 z-[100] animate-in slide-in-from-right">
           <div
@@ -573,13 +1355,13 @@ export default function EditProduct() {
             </div>
           </div>
 
-          {/* ✅ รูปภาพสินค้า */}
+          {/* รูปภาพสินค้า */}
           <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
             <h3 className="font-bold text-slate-700 flex items-center gap-2">
               <ImageIcon size={18} className="text-indigo-500" /> รูปปกสินค้า
             </h3>
 
-            {/* ✅ รูปหลัก */}
+            {/* รูปหลัก */}
             {product.image_url ? (
               <div className="relative rounded-xl overflow-hidden border border-slate-100 aspect-video bg-slate-50">
                 <img
@@ -596,20 +1378,16 @@ export default function EditProduct() {
                 </button>
               </div>
             ) : (
-              // ✅ กรณีไม่มีรูปปก
               <div className="aspect-video rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center bg-slate-50 text-slate-400">
                 <ImageIcon size={40} className="opacity-50 mb-2" />
                 <p className="text-sm font-medium">ยังไม่มีรูปปกสินค้า</p>
-
-                {/* ปุ่มอัปโหลดแสดงในกรอบนี้เลย */}
                 <label
                   htmlFor="uploadMainImage"
-                  className={`mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold cursor-pointer transition-all shadow-sm
-        ${
-          uploading
-            ? "bg-slate-300 text-slate-600 cursor-not-allowed"
-            : "bg-emerald-600 hover:bg-emerald-700 text-white"
-        }`}
+                  className={`mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold cursor-pointer transition-all shadow-sm ${
+                    uploading
+                      ? "bg-slate-300 text-slate-600 cursor-not-allowed"
+                      : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                  }`}
                 >
                   <ImageIcon size={16} />
                   {uploading ? "กำลังอัปโหลด..." : "อัปโหลดรูป"}
@@ -625,8 +1403,7 @@ export default function EditProduct() {
               </div>
             )}
 
-            {/* รูปเพิ่มเติม */}
-            {/* ✅ รูปภาพเพิ่มเติม */}
+            {/* รูปภาพเพิ่มเติม */}
             <div>
               <label className="text-xs font-black uppercase text-slate-400 ml-1 block mb-2">
                 รูปภาพรายละเอียดสินค้า
@@ -635,7 +1412,7 @@ export default function EditProduct() {
               {productImages.length > 0 ? (
                 <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
                   {productImages.map((img, idx) => (
-                    <div key={idx} className="relative group">
+                    <div key={img.id ?? idx} className="relative group">
                       <img
                         src={img.image_url}
                         alt={`Product ${idx}`}
@@ -655,7 +1432,6 @@ export default function EditProduct() {
                   ))}
                 </div>
               ) : (
-                // ✅ กรณีไม่มีรูปเพิ่มเติม
                 <div className="rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center bg-slate-50 text-slate-400 py-8">
                   <ImageIcon size={36} className="opacity-50 mb-2" />
                   <p className="text-sm font-medium">ยังไม่มีรูปภาพเพิ่มเติม</p>
@@ -668,7 +1444,7 @@ export default function EditProduct() {
                 เพิ่มรูปภาพใหม่จากเครื่อง
               </label>
 
-              {/* Preview */}
+              {/* Preview รูปที่เลือกแต่ยังไม่ upload */}
               {previewImages.length > 0 && (
                 <div className="grid grid-cols-3 md:grid-cols-4 gap-3 mt-2">
                   {previewImages.map((img, idx) => (
@@ -677,13 +1453,9 @@ export default function EditProduct() {
                       className="relative group rounded-xl overflow-hidden border border-slate-200 bg-white"
                     >
                       <img src={img.url} className="w-full h-24 object-cover" />
-
-                      {/* index */}
                       <span className="absolute top-1 left-1 bg-white/80 text-[10px] rounded-md px-2 py-0.5 font-bold">
                         #{productImages.length + idx}
                       </span>
-
-                      {/* delete */}
                       <button
                         type="button"
                         onClick={() => handleRemovePreview(idx)}
@@ -696,18 +1468,17 @@ export default function EditProduct() {
                 </div>
               )}
 
-              {/* Upload button */}
+              {/* ปุ่ม Upload */}
               {previewImages.length > 0 && (
                 <button
                   type="button"
                   onClick={handleUploadAll}
                   disabled={uploading}
-                  className={`w-full py-3 rounded-xl font-bold text-white transition-all shadow-md flex items-center justify-center gap-2
-        ${
-          uploading
-            ? "bg-slate-400 cursor-not-allowed"
-            : "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200"
-        }`}
+                  className={`w-full py-3 rounded-xl font-bold text-white transition-all shadow-md flex items-center justify-center gap-2 ${
+                    uploading
+                      ? "bg-slate-400 cursor-not-allowed"
+                      : "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200"
+                  }`}
                 >
                   {uploading ? (
                     "กำลังอัปโหลด..."
@@ -723,33 +1494,28 @@ export default function EditProduct() {
               <div
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
-                className={`rounded-xl border-2 border-dashed p-6 text-center transition-all
-      ${
-        uploading
-          ? "border-slate-200 bg-slate-100"
-          : "border-slate-300 bg-slate-50 hover:border-indigo-400 hover:bg-indigo-50/30"
-      }`}
+                className={`rounded-xl border-2 border-dashed p-6 text-center transition-all ${
+                  uploading
+                    ? "border-slate-200 bg-slate-100"
+                    : "border-slate-300 bg-slate-50 hover:border-indigo-400 hover:bg-indigo-50/30"
+                }`}
               >
                 <ImageIcon
                   size={36}
                   className="mx-auto mb-2 text-slate-400 opacity-70"
                 />
-
                 <p className="text-sm font-medium text-slate-500">
                   ลากไฟล์มาวาง หรือเลือกไฟล์
                 </p>
-
                 <label
-                  className={`mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold cursor-pointer transition-all shadow-sm
-        ${
-          uploading
-            ? "bg-slate-300 text-slate-500 cursor-not-allowed"
-            : "bg-indigo-600 hover:bg-indigo-700 text-white"
-        }`}
+                  className={`mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold cursor-pointer transition-all shadow-sm ${
+                    uploading
+                      ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                      : "bg-indigo-600 hover:bg-indigo-700 text-white"
+                  }`}
                 >
                   <ImageIcon size={16} />
                   {uploading ? "กำลังอัปโหลด..." : "เลือกไฟล์"}
-
                   <input
                     type="file"
                     multiple
@@ -766,7 +1532,7 @@ export default function EditProduct() {
 
         {/* RIGHT SIDE */}
         <div className="space-y-6">
-          {/* การตั้งค่า */}
+          {/* ราคา & สต็อก */}
           <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
             <h3 className="font-bold text-slate-700 flex items-center gap-2">
               <DollarSign size={18} className="text-emerald-500" /> ราคา & สต็อก
@@ -798,7 +1564,7 @@ export default function EditProduct() {
               />
             </div>
 
-            {/* ✅ dropdown หมวดหมู่ */}
+            {/* Dropdown หมวดหมู่ */}
             <div className="space-y-2">
               <label className="text-xs font-black uppercase text-slate-400 ml-1 flex items-center gap-1">
                 <Layers size={12} /> หมวดหมู่สินค้า
@@ -809,6 +1575,7 @@ export default function EditProduct() {
                 onChange={handleChange}
                 className="w-full px-4 py-3 bg-slate-50 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none"
               >
+                <option value="">-- เลือกหมวดหมู่ --</option>
                 {categories.map((cat) => (
                   <option key={cat.id} value={cat.id}>
                     {cat.name}
@@ -818,15 +1585,13 @@ export default function EditProduct() {
             </div>
           </div>
 
-          {/* ✅ สถานะสินค้า */}
+          {/* สถานะสินค้า */}
           <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
             <h3 className="font-bold text-slate-700 mb-4">สถานะสินค้า</h3>
-
             <div className="flex items-center justify-between">
               <span className="font-medium text-slate-600">
                 {product.is_active ? "เปิดการใช้งาน" : "ปิดการใช้งาน"}
               </span>
-
               <button
                 type="button"
                 onClick={() =>
@@ -846,7 +1611,6 @@ export default function EditProduct() {
                 />
               </button>
             </div>
-
             <p className="text-xs text-slate-400 mt-2">
               ใช้เปิด/ปิดการแสดงผลสินค้านี้ในหน้าร้าน
             </p>

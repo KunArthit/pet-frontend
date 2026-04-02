@@ -1,7 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { Package, Pencil, Loader, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import api from "../../services/api";
 
 const BRAND = { primary: "#79A68F", accent: "#A0D9F0" };
 
@@ -13,8 +12,30 @@ const MyAccountDashboard = () => {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const response = await api.get("/users/me");
-        const data = response.data;
+        const token = localStorage.getItem("accessToken");
+        const endpoint = `${import.meta.env.VITE_API_ENDPOINT}/users/me`;
+
+        // ใช้ fetch สดๆ แทน api.get
+        const response = await fetch(endpoint, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          }
+        });
+
+        // ตรวจสอบสถานะการตอบกลับ (Fetch จะไม่ throw error แม้จะเป็น 401/404/500)
+        if (!response.ok) {
+          if (response.status === 401) {
+            // กรณี Token หมดอายุ หรือไม่ถูกต้อง
+            localStorage.removeItem("accessToken");
+            navigate("/login");
+            return;
+          }
+          throw new Error("Network response was not ok");
+        }
+
+        const data = await response.json();
 
         if (data.success) {
           setUser({
@@ -33,6 +54,7 @@ const MyAccountDashboard = () => {
         setLoading(false);
       }
     };
+    
     fetchUserData();
   }, [navigate]);
 
